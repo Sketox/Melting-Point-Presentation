@@ -1,0 +1,195 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --claude-orange: #da7756;
+  --claude-bg: #1a1a1a;
+  --claude-bg-secondary: #2a2a2a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  background-color: #1a1a1a;
+  color: #f5f5f5;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #2a2a2a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4a4a4a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #da7756;
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(42, 42, 42, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #da7756 0%, #e89b7f 50%, #da7756 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animated gradient border */
+.gradient-border {
+  position: relative;
+  background: #2a2a2a;
+  border-radius: 16px;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 18px;
+  background: linear-gradient(45deg, #da7756, #e89b7f, #da7756, #c45a3a);
+  background-size: 300% 300%;
+  animation: gradient-rotate 4s linear infinite;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gradient-border:hover::before {
+  opacity: 1;
+}
+
+@keyframes gradient-rotate {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Glow effect on cards */
+.card-glow {
+  transition: all 0.3s ease;
+}
+
+.card-glow:hover {
+  box-shadow: 0 0 30px rgba(218, 119, 86, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Molecule representation */
+.molecule-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  letter-spacing: -0.5px;
+}
+
+/* Table styles */
+.data-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.data-table th {
+  background: rgba(218, 119, 86, 0.1);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+}
+
+.data-table tr:hover td {
+  background: rgba(218, 119, 86, 0.05);
+}
+
+/* Stat card pulse animation */
+@keyframes stat-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(218, 119, 86, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px 5px rgba(218, 119, 86, 0.1);
+  }
+}
+
+.stat-card {
+  animation: stat-pulse 3s ease-in-out infinite;
+}
+
+/* Input focus styles */
+input:focus, select:focus {
+  outline: none;
+  border-color: #da7756;
+  box-shadow: 0 0 0 3px rgba(218, 119, 86, 0.2);
+}
+
+/* Button hover effect */
+.btn-primary {
+  background: linear-gradient(135deg, #da7756 0%, #c45a3a 100%);
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #e89b7f 0%, #da7756 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 30px rgba(218, 119, 86, 0.3);
+}
+
+/* Recharts customization */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: #3a3a3a;
+}
+
+.recharts-text {
+  fill: #a0a0a0;
+}
+
+/* Noise texture overlay */
+.noise-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.03;
+  z-index: 9999;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* Loading shimmer */
+.shimmer {
+  background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
