@@ -1,22 +1,38 @@
-import type { Metadata } from 'next'
-import './globals.css'
+import type { Metadata } from 'next';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Melting Point Predictor | ML Dashboard',
+  title: {
+    default: 'MeltingPoint | ML Prediction Dashboard',
+    template: '%s | MeltingPoint'
+  },
   description: 'Kaggle Competition - Predicting molecular melting points using ChemProp ML model',
-}
+  keywords: ['machine learning', 'chemistry', 'melting point', 'kaggle', 'prediction', 'chemprop'],
+  authors: [{ name: 'Sketox' }],
+  openGraph: {
+    title: 'MeltingPoint - ML Prediction Dashboard',
+    description: 'Advanced machine learning model predicting melting points from SMILES molecular representations',
+    type: 'website',
+  },
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="antialiased">
+    <html lang="en" className="scroll-smooth">
+      <body className="antialiased min-h-screen flex flex-col">
         <div className="noise-overlay" />
-        {children}
+        <Navbar />
+        <main className="flex-1">
+          {children}
+        </main>
+        <Footer />
       </body>
     </html>
-  )
+  );
 }

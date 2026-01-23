@@ -74,23 +74,19 @@ npm run dev
 ### Backend (FastAPI)
 
 ```bash
-# 1. Navegar al directorio backend
-cd backend
-
-# 2. Crear entorno virtual
+# 1. Crear entorno virtual
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
 # o en Windows: venv\Scripts\activate
 
-# 3. Instalar dependencias
+# 2. Instalar dependencias
 pip install -r requirements.txt
 
-# 4. Ejecutar el servidor
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# 3. Ejecutar el servidor
+uvicorn backend.app.main:app --reload --port 8000
 
 # 5. Documentación automática disponible en:
 # http://localhost:8000/docs (Swagger UI)
-# http://localhost:8000/redoc (ReDoc)
 ```
 
 ---
@@ -366,16 +362,6 @@ npm run dev      # Desarrollo con hot-reload
 npm run build    # Build de producción
 npm run start    # Servidor de producción
 npm run lint     # Verificar código
-```
-
-### Backend
-
-```bash
-# Desarrollo
-uvicorn app.main:app --reload
-
-# Producción
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
 ---
