@@ -64,7 +64,7 @@ function StatCard({ title, value, subtitle, icon, color = 'orange', delay = 0 }:
         </h3>
         
         <p className="text-3xl font-bold text-claude-text mb-1">
-          {typeof value === 'number' ? value.toLocaleString('en-US', { maximumFractionDigits: 2 }) : value}
+          {typeof value === 'number' ? value.toLocaleString('es-ES', { maximumFractionDigits: 2 }) : value}
         </p>
         
         {subtitle && (
@@ -85,6 +85,8 @@ interface StatsGridProps {
     min: number;
     max: number;
     median: number;
+    q25?: number;
+    q75?: number;
   };
 }
 
@@ -92,15 +94,15 @@ export default function StatsGrid({ stats }: StatsGridProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
       <StatCard
-        title="Total Samples"
+        title="Total Muestras"
         value={stats.count}
-        subtitle="molecules in test set"
+        subtitle="moléculas en test set"
         icon={<Hash className="w-6 h-6" />}
         color="orange"
         delay={0}
       />
       <StatCard
-        title="Mean Tm"
+        title="Tm Promedio"
         value={`${stats.mean.toFixed(2)} K`}
         subtitle={`≈ ${(stats.mean - 273.15).toFixed(1)}°C`}
         icon={<Thermometer className="w-6 h-6" />}
@@ -108,15 +110,15 @@ export default function StatsGrid({ stats }: StatsGridProps) {
         delay={0.1}
       />
       <StatCard
-        title="Std Deviation"
+        title="Desv. Estándar"
         value={`±${stats.std.toFixed(2)} K`}
-        subtitle="variation in predictions"
+        subtitle="variación en predicciones"
         icon={<Sigma className="w-6 h-6" />}
         color="purple"
         delay={0.2}
       />
       <StatCard
-        title="Minimum Tm"
+        title="Tm Mínimo"
         value={`${stats.min.toFixed(2)} K`}
         subtitle={`≈ ${(stats.min - 273.15).toFixed(1)}°C`}
         icon={<TrendingDown className="w-6 h-6" />}
@@ -124,7 +126,7 @@ export default function StatsGrid({ stats }: StatsGridProps) {
         delay={0.3}
       />
       <StatCard
-        title="Maximum Tm"
+        title="Tm Máximo"
         value={`${stats.max.toFixed(2)} K`}
         subtitle={`≈ ${(stats.max - 273.15).toFixed(1)}°C`}
         icon={<TrendingUp className="w-6 h-6" />}
@@ -132,7 +134,7 @@ export default function StatsGrid({ stats }: StatsGridProps) {
         delay={0.4}
       />
       <StatCard
-        title="Median Tm"
+        title="Tm Mediana"
         value={`${stats.median.toFixed(2)} K`}
         subtitle={`≈ ${(stats.median - 273.15).toFixed(1)}°C`}
         icon={<Activity className="w-6 h-6" />}

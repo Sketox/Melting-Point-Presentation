@@ -15,7 +15,8 @@ import {
   Code,
   Brain,
   Zap,
-  ChevronRight
+  ChevronRight,
+  Target
 } from 'lucide-react';
 import { checkHealth, getStatistics, Statistics } from '@/lib/api';
 
@@ -33,12 +34,11 @@ export default function HomePage() {
       await checkHealth();
       setIsConnected(true);
       
-      // Intentar cargar stats
       try {
         const statsData = await getStatistics();
         setStats(statsData);
       } catch {
-        // Si no hay endpoint de stats, no pasa nada
+        // Stats endpoint might not be available
       }
     } catch (err) {
       setError('No se pudo conectar al backend');
@@ -79,6 +79,7 @@ export default function HomePage() {
             <code className="block text-claude-orange text-sm font-mono">
               cd backend<br/>
               .venv\Scripts\activate<br/>
+              python patch_chemprop_torch.py<br/>
               uvicorn app.main:app --reload
             </code>
           </div>
@@ -99,28 +100,28 @@ export default function HomePage() {
     {
       icon: Beaker,
       title: 'Predicción Molecular',
-      description: 'Predice puntos de fusión a partir de estructuras SMILES',
+      description: 'Predice puntos de fusión a partir de estructuras SMILES con validación RDKit',
       color: 'from-blue-500/20 to-blue-600/10',
       iconColor: 'text-blue-400'
     },
     {
       icon: Brain,
-      title: 'ChemProp ML',
-      description: 'Red neuronal MPNN especializada en propiedades moleculares',
+      title: 'ChemProp D-MPNN',
+      description: 'Red neuronal de grafos con MAE de 28.85 K entrenada con 5-fold CV',
       color: 'from-purple-500/20 to-purple-600/10',
       iconColor: 'text-purple-400'
     },
     {
       icon: BarChart3,
       title: 'Visualizaciones',
-      description: 'Gráficos interactivos de distribución y análisis',
+      description: 'Gráficos interactivos de distribución, grupos funcionales y análisis',
       color: 'from-emerald-500/20 to-emerald-600/10',
       iconColor: 'text-emerald-400'
     },
     {
       icon: Code,
       title: 'API REST',
-      description: 'Endpoints documentados para integración fácil',
+      description: '14 endpoints documentados con Swagger UI para integración fácil',
       color: 'from-claude-orange/20 to-claude-orange/10',
       iconColor: 'text-claude-orange'
     }
@@ -157,7 +158,7 @@ export default function HomePage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-claude-orange/10 border border-claude-orange/20 mb-6"
             >
               <Sparkles className="w-4 h-4 text-claude-orange" />
-              <span className="text-claude-orange text-sm font-medium">Kaggle Competition</span>
+              <span className="text-claude-orange text-sm font-medium">Competencia Kaggle</span>
               {isConnected && (
                 <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
               )}
@@ -165,18 +166,18 @@ export default function HomePage() {
 
             {/* Title */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
-              <span className="text-claude-text">Molecular </span>
-              <span className="gradient-text">Melting Point</span>
+              <span className="text-claude-text">Predicción de </span>
+              <span className="gradient-text">Puntos de Fusión</span>
               <br />
-              <span className="text-claude-text">Prediction</span>
+              <span className="text-claude-text">Moleculares</span>
             </h1>
 
             {/* Subtitle */}
             <p className="text-lg sm:text-xl text-claude-text-secondary mb-8 leading-relaxed">
               Sistema avanzado de Machine Learning para predecir puntos de fusión 
               a partir de representaciones moleculares SMILES. 
-              Desarrollado para la competencia{' '}
-              <span className="text-claude-orange font-semibold">Thermophysical Property</span>.
+              Modelo ChemProp D-MPNN con{' '}
+              <span className="text-claude-orange font-semibold">MAE de 28.85 ± 3.16 K</span>.
             </p>
 
             {/* CTA Buttons */}
@@ -198,32 +199,62 @@ export default function HomePage() {
           </motion.div>
 
           {/* Stats Preview */}
-          {stats && (
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.3 }}
-              className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto"
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.3 }}
+            className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto"
+          >
+            {[
+              { label: 'Moléculas', value: stats?.count?.toLocaleString() || '667' },
+              { label: 'Tm Promedio', value: stats ? `${stats.mean.toFixed(0)} K` : '276 K' },
+              { label: 'Test MAE', value: '28.85 K' },
+              { label: 'Folds CV', value: '5' },
+            ].map((stat, index) => (
+              <motion.div 
+                key={stat.label} 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4 + index * 0.1 }}
+                className="text-center p-4 rounded-xl glass border border-claude-border"
+              >
+                <p className="text-2xl md:text-3xl font-bold text-claude-orange">{stat.value}</p>
+                <p className="text-claude-text-secondary text-sm">{stat.label}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Model Highlight */}
+      <section className="py-12 px-6 bg-gradient-to-r from-purple-500/5 via-blue-500/5 to-transparent">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="flex flex-col md:flex-row items-center gap-8 p-6 rounded-2xl glass border border-purple-500/20"
+          >
+            <div className="p-4 rounded-2xl bg-purple-500/20">
+              <Target className="w-12 h-12 text-purple-400" />
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <h3 className="text-xl font-bold text-claude-text mb-2">
+                Modelo Entrenado con ChemProp D-MPNN
+              </h3>
+              <p className="text-claude-text-secondary">
+                Red neuronal de grafos con 300 dimensiones, 6 capas de profundidad y validación cruzada de 5 folds.
+                Ejemplo: Agua (SMILES: "O") → <span className="text-claude-orange font-semibold">272.17 K</span> (real: 273.15 K) ✓
+              </p>
+            </div>
+            <Link 
+              href="/model"
+              className="px-6 py-3 rounded-xl font-semibold border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 transition-all flex items-center gap-2"
             >
-              {[
-                { label: 'Moléculas', value: stats.count.toLocaleString() },
-                { label: 'Tm Promedio', value: `${stats.mean.toFixed(0)} K` },
-                { label: 'Modelo', value: 'ChemProp' },
-                { label: 'R² Score', value: '0.847' },
-              ].map((stat, index) => (
-                <motion.div 
-                  key={stat.label} 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.4 + index * 0.1 }}
-                  className="text-center p-4 rounded-xl glass border border-claude-border"
-                >
-                  <p className="text-2xl md:text-3xl font-bold text-claude-orange">{stat.value}</p>
-                  <p className="text-claude-text-secondary text-sm">{stat.label}</p>
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
+              Ver Detalles
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </motion.div>
         </div>
       </section>
 
@@ -334,8 +365,8 @@ export default function HomePage() {
               ¿Listo para comenzar?
             </h2>
             <p className="text-claude-text-secondary mb-8 max-w-xl mx-auto">
-              Explora las predicciones del modelo, analiza los datos y descubre 
-              cómo funciona nuestro sistema de Machine Learning.
+              Explora las predicciones del modelo, añade tus propios compuestos y descubre 
+              cómo funciona nuestro sistema de Machine Learning con ChemProp.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link 

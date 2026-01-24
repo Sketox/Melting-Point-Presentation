@@ -102,10 +102,10 @@ export default function PredictionsTable({ predictions }: PredictionsTableProps)
           <div>
             <h3 className="text-xl font-bold text-claude-text flex items-center gap-2">
               <Beaker className="w-5 h-5 text-claude-orange" />
-              Predictions Table
+              Tabla de Predicciones
             </h3>
             <p className="text-claude-text-secondary text-sm mt-1">
-              {filteredAndSorted.length} molecules found
+              {filteredAndSorted.length} moléculas encontradas
             </p>
           </div>
           
@@ -113,7 +113,7 @@ export default function PredictionsTable({ predictions }: PredictionsTableProps)
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-claude-text-muted" />
             <input
               type="text"
-              placeholder="Search by SMILES, ID, or Tm..."
+              placeholder="Buscar por SMILES, ID o Tm..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -150,7 +150,7 @@ export default function PredictionsTable({ predictions }: PredictionsTableProps)
                 onClick={() => handleSort('smiles')}
               >
                 <div className="flex items-center gap-2">
-                  SMILES Structure
+                  Estructura SMILES
                   <SortIcon field="smiles" />
                 </div>
               </th>
@@ -160,12 +160,12 @@ export default function PredictionsTable({ predictions }: PredictionsTableProps)
               >
                 <div className="flex items-center gap-2">
                   <Thermometer className="w-4 h-4" />
-                  Predicted Tm
+                  Tm Predicho
                   <SortIcon field="Tm_pred" />
                 </div>
               </th>
               <th className="px-6 py-4 text-center">
-                Actions
+                Acciones
               </th>
             </tr>
           </thead>
@@ -216,12 +216,12 @@ export default function PredictionsTable({ predictions }: PredictionsTableProps)
                       {copiedId === prediction.id ? (
                         <>
                           <Check className="w-4 h-4 text-green-400" />
-                          <span className="text-green-400">Copied!</span>
+                          <span className="text-green-400">¡Copiado!</span>
                         </>
                       ) : (
                         <>
                           <Copy className="w-4 h-4" />
-                          <span>Copy</span>
+                          <span>Copiar</span>
                         </>
                       )}
                     </button>
@@ -236,7 +236,7 @@ export default function PredictionsTable({ predictions }: PredictionsTableProps)
       {/* Pagination */}
       <div className="p-4 border-t border-claude-border flex flex-col sm:flex-row items-center justify-between gap-4">
         <p className="text-claude-text-secondary text-sm">
-          Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredAndSorted.length)} of {filteredAndSorted.length} results
+          Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, filteredAndSorted.length)} de {filteredAndSorted.length} resultados
         </p>
         
         <div className="flex items-center gap-2">
@@ -251,7 +251,7 @@ export default function PredictionsTable({ predictions }: PredictionsTableProps)
               transition-all
             "
           >
-            Previous
+            Anterior
           </button>
           
           <div className="flex items-center gap-1">
@@ -295,7 +295,7 @@ export default function PredictionsTable({ predictions }: PredictionsTableProps)
               transition-all
             "
           >
-            Next
+            Siguiente
           </button>
         </div>
       </div>

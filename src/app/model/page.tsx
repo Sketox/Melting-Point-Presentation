@@ -15,22 +15,35 @@ import {
   Sparkles,
   FlaskConical,
   Atom,
-  Network
+  Network,
+  AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ModelPage() {
+  // Real metrics from trained model
   const modelSpecs = {
     name: 'ChemProp',
-    type: 'Message Passing Neural Network (MPNN)',
+    type: 'D-MPNN (Directed Message Passing Neural Network)',
     architecture: 'Graph Neural Network',
     features: 'Molecular SMILES → Graph',
-    target: 'Melting Point (Tm) in Kelvin',
+    target: 'Punto de Fusión (Tm) en Kelvin',
     folds: 5,
+    epochs: 50,
+    hiddenSize: 300,
+    depth: 6,
+    dropout: 0.1,
+    batchSize: 32,
     metrics: {
-      rmse: 42.15,
-      mae: 31.28,
-      r2: 0.847,
+      mae: 28.85,
+      maeStd: 3.16,
+      foldMetrics: [
+        { fold: 0, valMae: 29.63, testMae: 26.15, bestEpoch: 30 },
+        { fold: 1, valMae: 29.26, testMae: 27.64, bestEpoch: 41 },
+        { fold: 2, valMae: 27.22, testMae: 35.03, bestEpoch: 45 },
+        { fold: 3, valMae: 26.57, testMae: 27.35, bestEpoch: 48 },
+        { fold: 4, valMae: 31.31, testMae: 28.09, bestEpoch: 28 },
+      ]
     },
   };
 
@@ -44,70 +57,70 @@ export default function ModelPage() {
     },
     {
       step: 2,
-      title: 'Molecular Graph',
+      title: 'Grafo Molecular',
       description: 'El SMILES se convierte en un grafo molecular donde los nodos son átomos y las aristas son enlaces químicos',
       icon: Network,
-      detail: 'Nodes: Atoms | Edges: Bonds',
+      detail: 'Nodos: Átomos | Aristas: Enlaces',
     },
     {
       step: 3,
       title: 'Message Passing',
-      description: 'La red neuronal propaga información entre átomos vecinos para aprender representaciones moleculares',
+      description: 'La red neuronal propaga información entre átomos vecinos durante 6 iteraciones para aprender representaciones moleculares',
       icon: GitBranch,
-      detail: '3 message passing steps',
+      detail: `${modelSpecs.depth} pasos de propagación de mensajes`,
     },
     {
       step: 4,
       title: 'Readout',
       description: 'Las representaciones atómicas se agregan para formar un vector de características molecular',
       icon: Layers,
-      detail: 'Global pooling → 300D vector',
+      detail: `Global pooling → vector de ${modelSpecs.hiddenSize}D`,
     },
     {
       step: 5,
-      title: 'Prediction',
-      description: 'Una red feed-forward predice el punto de fusión a partir del vector molecular',
+      title: 'Predicción',
+      description: 'Una red feed-forward (FFN) predice el punto de fusión a partir del vector molecular',
       icon: Target,
-      detail: 'FFN → Tm (Kelvin)',
+      detail: 'FFN → Tm (Kelvin) ± 28.9 K',
     },
   ];
 
   const features = [
     {
-      title: 'Atom Features',
-      items: ['Atomic number', 'Degree', 'Formal charge', 'Chirality', 'Hybridization', 'Aromaticity', 'Ring membership'],
+      title: 'Características Atómicas',
+      items: ['Número atómico', 'Grado (conectividad)', 'Carga formal', 'Quiralidad', 'Hibridación', 'Aromaticidad', 'Pertenencia a anillo'],
     },
     {
-      title: 'Bond Features',
-      items: ['Bond type (single/double/triple/aromatic)', 'Conjugation', 'Ring membership', 'Stereo configuration'],
+      title: 'Características de Enlace',
+      items: ['Tipo de enlace (simple/doble/triple/aromático)', 'Conjugación', 'Pertenencia a anillo', 'Configuración estéreo'],
     },
   ];
 
   const advantages = [
     {
       icon: Sparkles,
-      title: 'No Feature Engineering',
+      title: 'Sin Feature Engineering',
       description: 'Aprende directamente de la estructura molecular sin necesidad de calcular descriptores manualmente',
     },
     {
       icon: Network,
-      title: 'Estructura Aware',
+      title: 'Entiende la Estructura',
       description: 'Captura relaciones espaciales y topológicas entre átomos en la molécula',
     },
     {
       icon: Cpu,
       title: 'Eficiente',
-      description: 'Entrenamiento rápido con GPU y predicciones en milisegundos',
+      description: 'Entrenamiento rápido con GPU y predicciones en segundos',
     },
     {
       icon: BarChart3,
-      title: 'State-of-the-Art',
+      title: 'Estado del Arte',
       description: 'Resultados competitivos en múltiples benchmarks de propiedades moleculares',
     },
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -120,10 +133,10 @@ export default function ModelPage() {
           </div>
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-claude-text">
-              Modelo de ML
+              Modelo de Machine Learning
             </h1>
             <p className="text-claude-text-secondary">
-              ChemProp - Message Passing Neural Network
+              ChemProp - Directed Message Passing Neural Network
             </p>
           </div>
         </div>
@@ -153,9 +166,9 @@ export default function ModelPage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {[
               { icon: Brain, label: 'Tipo', value: modelSpecs.type },
-              { icon: Layers, label: 'Arquitectura', value: modelSpecs.architecture },
-              { icon: Target, label: 'Target', value: modelSpecs.target },
-              { icon: Zap, label: 'Input', value: modelSpecs.features },
+              { icon: Layers, label: 'Hidden Size', value: `${modelSpecs.hiddenSize} dimensiones` },
+              { icon: GitBranch, label: 'Profundidad', value: `${modelSpecs.depth} capas` },
+              { icon: Target, label: 'Dropout', value: `${modelSpecs.dropout * 100}%` },
             ].map((item, index) => (
               <motion.div
                 key={item.label}
@@ -173,54 +186,117 @@ export default function ModelPage() {
             ))}
           </div>
 
+          {/* Training Config */}
+          <div className="mb-8 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+            <div className="flex items-center gap-2 mb-3">
+              <Database className="w-5 h-5 text-blue-400" />
+              <span className="font-semibold text-claude-text">Configuración de Entrenamiento</span>
+            </div>
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div>
+                <p className="text-claude-text-muted text-sm">Epochs</p>
+                <p className="text-claude-text font-bold">{modelSpecs.epochs}</p>
+              </div>
+              <div>
+                <p className="text-claude-text-muted text-sm">Batch Size</p>
+                <p className="text-claude-text font-bold">{modelSpecs.batchSize}</p>
+              </div>
+              <div>
+                <p className="text-claude-text-muted text-sm">Métrica</p>
+                <p className="text-claude-text font-bold">MAE (Mean Absolute Error)</p>
+              </div>
+            </div>
+          </div>
+
           {/* Cross-validation */}
           <div className="mb-8 p-4 rounded-xl bg-claude-orange/10 border border-claude-orange/20">
             <div className="flex items-center gap-2 mb-3">
               <CheckCircle2 className="w-5 h-5 text-claude-orange" />
-              <span className="font-semibold text-claude-text">Cross-Validation</span>
+              <span className="font-semibold text-claude-text">Validación Cruzada de 5 Folds</span>
             </div>
-            <div className="flex items-center gap-2 mb-2">
-              {Array.from({ length: modelSpecs.folds }, (_, i) => (
+            <div className="flex items-center gap-2 mb-4">
+              {modelSpecs.metrics.foldMetrics.map((fold, i) => (
                 <div
                   key={i}
-                  className="flex-1 h-4 rounded-full bg-claude-orange"
+                  className="flex-1 h-4 rounded-full bg-claude-orange relative group cursor-pointer"
                   style={{ opacity: 0.4 + (i * 0.15) }}
-                />
+                >
+                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 hidden group-hover:block bg-claude-bg-secondary px-2 py-1 rounded text-xs whitespace-nowrap border border-claude-border z-10">
+                    Fold {fold.fold}: {fold.testMae.toFixed(2)} K
+                  </div>
+                </div>
               ))}
             </div>
-            <p className="text-claude-text-secondary text-sm">
-              {modelSpecs.folds}-Fold Cross-Validation para estimación robusta del rendimiento
-            </p>
+            
+            {/* Fold details table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-claude-text-muted">
+                    <th className="text-left py-2">Fold</th>
+                    <th className="text-right py-2">Val MAE</th>
+                    <th className="text-right py-2">Test MAE</th>
+                    <th className="text-right py-2">Mejor Epoch</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {modelSpecs.metrics.foldMetrics.map((fold) => (
+                    <tr key={fold.fold} className="border-t border-claude-border/50">
+                      <td className="py-2 text-claude-text">Fold {fold.fold}</td>
+                      <td className="py-2 text-right text-claude-text-secondary">{fold.valMae.toFixed(2)} K</td>
+                      <td className="py-2 text-right text-claude-orange font-medium">{fold.testMae.toFixed(2)} K</td>
+                      <td className="py-2 text-right text-claude-text-muted">{fold.bestEpoch}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          {/* Metrics */}
+          {/* Final Metrics */}
           <div>
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 className="w-5 h-5 text-claude-text-secondary" />
-              <span className="font-semibold text-claude-text">Métricas de Rendimiento</span>
+              <span className="font-semibold text-claude-text">Métricas Finales del Modelo</span>
             </div>
             
-            <div className="grid grid-cols-3 gap-4">
-              {[
-                { label: 'RMSE', value: modelSpecs.metrics.rmse, unit: 'K', color: 'text-blue-400', desc: 'Root Mean Square Error' },
-                { label: 'MAE', value: modelSpecs.metrics.mae, unit: 'K', color: 'text-emerald-400', desc: 'Mean Absolute Error' },
-                { label: 'R²', value: modelSpecs.metrics.r2, unit: '', color: 'text-claude-orange', desc: 'Coefficient of Determination' },
-              ].map((metric, index) => (
-                <motion.div
-                  key={metric.label}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.4 + index * 0.1 }}
-                  className="text-center p-4 rounded-xl bg-claude-bg border border-claude-border"
-                >
-                  <p className={`text-3xl font-bold ${metric.color}`}>
-                    {metric.value}
-                    <span className="text-sm font-normal text-claude-text-muted ml-1">{metric.unit}</span>
-                  </p>
-                  <p className="text-claude-text-secondary text-sm mt-1">{metric.label}</p>
-                  <p className="text-claude-text-muted text-xs mt-1">{metric.desc}</p>
-                </motion.div>
-              ))}
+            <div className="grid grid-cols-2 gap-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4 }}
+                className="text-center p-6 rounded-xl bg-gradient-to-br from-claude-orange/20 to-claude-orange/5 border border-claude-orange/30"
+              >
+                <p className="text-4xl font-bold text-claude-orange">
+                  {modelSpecs.metrics.mae}
+                  <span className="text-lg font-normal text-claude-text-muted ml-1">K</span>
+                </p>
+                <p className="text-claude-text-secondary text-sm mt-1">MAE (Test)</p>
+                <p className="text-claude-text-muted text-xs mt-1">Error Absoluto Medio</p>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.5 }}
+                className="text-center p-6 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 border border-purple-500/30"
+              >
+                <p className="text-4xl font-bold text-purple-400">
+                  ±{modelSpecs.metrics.maeStd}
+                  <span className="text-lg font-normal text-claude-text-muted ml-1">K</span>
+                </p>
+                <p className="text-claude-text-secondary text-sm mt-1">Desviación Estándar</p>
+                <p className="text-claude-text-muted text-xs mt-1">Variación entre folds</p>
+              </motion.div>
+            </div>
+
+            {/* Uncertainty note */}
+            <div className="mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-claude-text-secondary">
+                Todas las predicciones incluyen una <span className="text-yellow-400 font-semibold">incertidumbre de ±28.9 K</span> basada en el MAE del modelo. 
+                Esto significa que el valor real probablemente está dentro de ese rango.
+              </p>
             </div>
           </div>
         </div>

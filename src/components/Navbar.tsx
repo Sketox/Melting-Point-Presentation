@@ -19,11 +19,11 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { href: '/', label: 'Home', icon: Home },
-  { href: '/predictions', label: 'Predictions', icon: Table2 },
+  { href: '/', label: 'Inicio', icon: Home },
+  { href: '/predictions', label: 'Predicciones', icon: Table2 },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { href: '/model', label: 'Model', icon: Brain },
-  { href: '/about', label: 'About', icon: Info },
+  { href: '/model', label: 'Modelo', icon: Brain },
+  { href: '/about', label: 'Acerca de', icon: Info },
   { href: '/api-docs', label: 'API', icon: Code },
 ];
 
@@ -40,7 +40,7 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Cerrar menú móvil al cambiar de página
+  // Close mobile menu on page change
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
@@ -73,7 +73,7 @@ export default function Navbar() {
                 <h1 className="text-lg font-bold text-claude-text">
                   Melting<span className="text-claude-orange">Point</span>
                 </h1>
-                <p className="text-[10px] text-claude-text-muted -mt-1">Kaggle Competition</p>
+                <p className="text-[10px] text-claude-text-muted -mt-1">Competencia Kaggle</p>
               </div>
             </Link>
 
@@ -113,7 +113,7 @@ export default function Navbar() {
             {/* Actions */}
             <div className="flex items-center gap-2">
               <a
-                href="https://www.kaggle.com/competitions/melting-point"
+                href="https://www.kaggle.com/competitions/playground-series-s5e6"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="

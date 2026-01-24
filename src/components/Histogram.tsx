@@ -21,15 +21,15 @@ interface HistogramProps {
   }[];
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
       <div className="glass rounded-xl p-4 shadow-lg border border-claude-border">
         <p className="text-claude-orange font-semibold mb-2">{data.range} K</p>
         <p className="text-claude-text">
-          <span className="text-claude-text-secondary">Count: </span>
-          <span className="font-bold">{data.count}</span> molecules
+          <span className="text-claude-text-secondary">Cantidad: </span>
+          <span className="font-bold">{data.count}</span> moléculas
         </p>
         <p className="text-claude-text-muted text-sm mt-1">
           {(data.min - 273.15).toFixed(1)}°C - {(data.max - 273.15).toFixed(1)}°C
@@ -53,10 +53,10 @@ export default function Histogram({ data }: HistogramProps) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-xl font-bold text-claude-text">
-            Distribution of Predicted Melting Points
+            Distribución de Puntos de Fusión Predichos
           </h3>
           <p className="text-claude-text-secondary text-sm mt-1">
-            Histogram showing frequency distribution of Tm predictions
+            Histograma mostrando la distribución de frecuencia de las predicciones de Tm
           </p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-claude-orange/10 border border-claude-orange/20">
@@ -91,7 +91,7 @@ export default function Histogram({ data }: HistogramProps) {
               tickLine={{ stroke: '#3a3a3a' }}
               axisLine={{ stroke: '#3a3a3a' }}
               label={{ 
-                value: 'Count', 
+                value: 'Cantidad', 
                 angle: -90, 
                 position: 'insideLeft',
                 fill: '#a0a0a0',
@@ -120,11 +120,11 @@ export default function Histogram({ data }: HistogramProps) {
       <div className="mt-4 flex justify-center gap-8 text-sm text-claude-text-secondary">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded bg-claude-orange/40" />
-          <span>Lower frequency</span>
+          <span>Menor frecuencia</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded bg-claude-orange" />
-          <span>Higher frequency</span>
+          <span>Mayor frecuencia</span>
         </div>
       </div>
     </motion.div>

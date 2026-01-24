@@ -1,442 +1,304 @@
-# 🔥 Melting Point Predictor
+# 🔥 Melting Point Dashboard
 
 <div align="center">
 
 ![Next.js](https://img.shields.io/badge/Next.js-14.2-black?style=for-the-badge&logo=next.js)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi)
-![ChemProp](https://img.shields.io/badge/ChemProp-MPNN-orange?style=for-the-badge)
-![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.x-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
+![Recharts](https://img.shields.io/badge/Recharts-2.x-8884d8?style=for-the-badge)
 
-**Predicción de puntos de fusión moleculares usando Machine Learning**
+**Interactive dashboard for molecular melting point predictions**
 
-[Demo](#-demo) • [Instalación](#-instalación) • [API](#-api-endpoints) • [Modelo](#-modelo-ml) • [Estructura](#-estructura-del-proyecto)
+[Demo](#-pages) • [Installation](#-installation) • [Structure](#-project-structure) • [API Client](#-api-client)
 
 </div>
 
 ---
 
-## 📋 Descripción
+## 📋 Description
 
-Este proyecto implementa una solución completa de Machine Learning para la competencia [Kaggle Melting Point](https://www.kaggle.com/competitions/melting-point), que consiste en predecir el punto de fusión (Tm) de moléculas a partir de su representación SMILES.
+Modern dashboard built with **Next.js 14** to visualize and analyze molecular melting point predictions. Connects to the FastAPI backend to retrieve predictions from the trained ChemProp D-MPNN model.
 
-### Características principales:
+### ✨ Features
 
-- 🧠 **Modelo ChemProp** - Red neuronal de paso de mensajes (MPNN) especializada en propiedades moleculares
-- 🚀 **API REST** - Backend FastAPI con endpoints para predicciones individuales y masivas
-- 🎨 **Dashboard Interactivo** - Frontend Next.js con visualizaciones y estadísticas en tiempo real
-- 📊 **Visualizaciones** - Histogramas, scatter plots y tablas interactivas con Recharts
-
----
-
-## 🎯 Demo
-
-### Vista del Dashboard
-
-El dashboard incluye:
-
-| Sección | Descripción |
-|---------|-------------|
-| **Hero** | Presentación del proyecto con métricas clave |
-| **Estadísticas** | Cards con count, mean, std, min, max, median |
-| **Histograma** | Distribución de predicciones de Tm |
-| **Scatter Plot** | Complejidad molecular vs punto de fusión |
-| **Predicción por ID** | Búsqueda interactiva de moléculas |
-| **Tabla de Datos** | Todas las predicciones con búsqueda y paginación |
-| **Documentación API** | Referencia de endpoints con ejemplos cURL |
+- 🎨 **Modern Design** - Dark theme inspired by Claude (Anthropic)
+- 📊 **Interactive Visualizations** - Charts with Recharts
+- 🔬 **Real-time SMILES Validation** - Debounced validation with visual feedback
+- 💾 **Compound Management** - Create, view, and delete custom compounds
+- 📱 **Responsive** - Adapted for mobile, tablet, and desktop
+- ⚡ **Smooth Animations** - Framer Motion for fluid transitions
 
 ---
 
-## 🚀 Instalación
+## 🎯 Pages
 
-### Prerrequisitos
+| Page | Route | Description |
+|------|-------|-------------|
+| **Home** | `/` | Hero section, statistics, features overview |
+| **Predictions** | `/predictions` | Search by ID, filters, user compounds, data table |
+| **Analytics** | `/analytics` | Distribution charts, functional groups, statistics |
+| **Model** | `/model` | ChemProp architecture, metrics (MAE: 28.85 ± 3.16 K) |
+| **About** | `/about` | Project information and Kaggle competition |
+| **API Docs** | `/api-docs` | Endpoint documentation with examples |
 
-- Node.js 18+ 
-- Python 3.10+
-- npm o yarn
+---
 
-### Frontend (Next.js)
+## 🚀 Installation
+
+### Prerequisites
+
+- Node.js 18+
+- npm or yarn
+- Backend running on `http://localhost:8000`
+
+### Step by Step
 
 ```bash
-# 1. Clonar o descomprimir el proyecto
-cd melting-point-dashboard
+# 1. Navigate to frontend directory
+cd MeltingPoint/frontend
 
-# 2. Instalar dependencias
+# 2. Install dependencies
 npm install
 
-# 3. Ejecutar en modo desarrollo
+# 3. Configure environment variable (optional)
+# Create .env.local file
+echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
+
+# 4. Run in development mode
 npm run dev
 
-# 4. Abrir en el navegador
+# 5. Open in browser
 # http://localhost:3000
 ```
 
-### Backend (FastAPI)
+### Available Scripts
 
 ```bash
-# 1. Crear entorno virtual
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# o en Windows: venv\Scripts\activate
-
-# 2. Instalar dependencias
-pip install -r requirements.txt
-
-# 3. Ejecutar el servidor
-uvicorn backend.app.main:app --reload --port 8000
-
-# 5. Documentación automática disponible en:
-# http://localhost:8000/docs (Swagger UI)
+npm run dev      # Development with hot-reload
+npm run build    # Production build
+npm run start    # Production server
+npm run lint     # Code verification
 ```
 
 ---
 
-## 🔌 API Endpoints
+## 🎨 Color Theme
 
-### Base URL
-```
-http://localhost:8000
-```
+Palette inspired by Claude (Anthropic):
 
-### Endpoints Disponibles
-
-#### 1. Health Check
-Verifica el estado del servidor y la disponibilidad del modelo.
-
-```http
-GET /health
-```
-
-**Response:**
-```json
-{
-  "status": "ok"
-}
-```
+| Color | CSS Variable | Hex | Usage |
+|-------|-------------|-----|-------|
+| **Orange** | `--claude-orange` | `#da7756` | Accents, CTAs |
+| **Orange Dark** | `--claude-orange-dark` | `#c45a3a` | Hover states |
+| **Background** | `--claude-bg` | `#1a1a1a` | Main background |
+| **Secondary BG** | `--claude-bg-secondary` | `#2a2a2a` | Cards |
+| **Text** | `--claude-text` | `#f5f5f5` | Primary text |
+| **Text Secondary** | `--claude-text-secondary` | `#a0a0a0` | Secondary text |
+| **Border** | `--claude-border` | `#3a3a3a` | Borders |
 
 ---
 
-#### 2. Predict by ID
-Obtiene la predicción del punto de fusión para un ID específico del dataset de test.
-
-```http
-POST /predict-by-id
-Content-Type: application/json
-```
-
-**Request Body:**
-```json
-{
-  "id": 1
-}
-```
-
-**Response:**
-```json
-{
-  "id": 1,
-  "Tm_pred": 341.51
-}
-```
-
-**Ejemplo cURL:**
-```bash
-curl -X POST "http://localhost:8000/predict-by-id" \
-  -H "Content-Type: application/json" \
-  -d '{"id": 1}'
-```
-
----
-
-#### 3. Predict All
-Obtiene todas las predicciones del dataset de test completo.
-
-```http
-GET /predict-all
-```
-
-**Response:**
-```json
-[
-  { "id": 1, "Tm_pred": 341.51 },
-  { "id": 2, "Tm_pred": 372.55 },
-  { "id": 3, "Tm_pred": 205.82 },
-  ...
-]
-```
-
-**Ejemplo cURL:**
-```bash
-curl -X GET "http://localhost:8000/predict-all"
-```
-
----
-
-## 🧠 Modelo ML
-
-### ChemProp (D-MPNN)
-
-El modelo utiliza **ChemProp**, una implementación de redes neuronales de paso de mensajes dirigidos (D-MPNN) diseñada específicamente para la predicción de propiedades moleculares.
-
-### Arquitectura
+## 📁 Project Structure
 
 ```
-SMILES Input → Molecular Graph → Message Passing → Readout → Prediction
-     ↓              ↓                  ↓            ↓          ↓
-  "CCO..."    Atoms + Bonds      Neural Network   Pooling    Tm (K)
-```
-
-### Características del Modelo
-
-| Parámetro | Valor |
-|-----------|-------|
-| **Tipo** | Message Passing Neural Network (MPNN) |
-| **Arquitectura** | Directed MPNN (D-MPNN) |
-| **Validación** | 5-Fold Cross-Validation |
-| **Input** | SMILES (Simplified Molecular Input Line Entry System) |
-| **Output** | Punto de fusión en Kelvin (K) |
-
-### Métricas de Rendimiento
-
-| Métrica | Valor |
-|---------|-------|
-| **RMSE** | 42.3 K |
-| **MAE** | 31.8 K |
-| **R²** | 0.847 |
-
-### Entrenamiento
-
-El modelo fue entrenado con validación cruzada de 5 folds para garantizar robustez:
-
-```
-📁 models/
-├── 📁 model_chemprop/
-│   ├── 📁 fold_0/
-│   ├── 📁 fold_1/
-│   ├── 📁 fold_2/
-│   ├── 📁 fold_3/
-│   ├── 📁 fold_4/
-│   ├── args.json
-│   └── test_scores.csv
-└── model.joblib
-```
-
----
-
-## 📁 Estructura del Proyecto
-
-```
-MeltingPoint/
-│
-├── 📁 backend/                    # API FastAPI
+frontend/
+├── 📁 src/
 │   ├── 📁 app/
-│   │   ├── __init__.py
-│   │   ├── config.py             # Configuración de rutas
-│   │   ├── main.py               # Endpoints FastAPI
-│   │   ├── ml_service.py         # Servicio de ML
-│   │   └── schemas.py            # Esquemas Pydantic
+│   │   ├── globals.css       # Global styles, Claude theme
+│   │   ├── layout.tsx        # Main layout (Navbar, Footer)
+│   │   ├── page.tsx          # Home page
+│   │   ├── 📁 predictions/
+│   │   │   └── page.tsx      # Search, filters, user compounds
+│   │   ├── 📁 analytics/
+│   │   │   └── page.tsx      # Charts and statistics
+│   │   ├── 📁 model/
+│   │   │   └── page.tsx      # ChemProp model info
+│   │   ├── 📁 about/
+│   │   │   └── page.tsx      # About the project
+│   │   └── 📁 api-docs/
+│   │       └── page.tsx      # API documentation
 │   │
-│   └── 📁 models/
-│       ├── 📁 model_chemprop/    # Modelo ChemProp entrenado
-│       └── model.joblib          # Modelo serializado
-│
-├── 📁 frontend/                   # Dashboard Next.js
-│   ├── 📁 src/
-│   │   ├── 📁 app/
-│   │   │   ├── globals.css       # Estilos globales
-│   │   │   ├── layout.tsx        # Layout principal
-│   │   │   └── page.tsx          # Página principal
-│   │   │
-│   │   ├── 📁 components/
-│   │   │   ├── Header.tsx        # Navegación
-│   │   │   ├── StatsGrid.tsx     # Tarjetas de estadísticas
-│   │   │   ├── Histogram.tsx     # Gráfico de distribución
-│   │   │   ├── ScatterPlot.tsx   # Scatter plot
-│   │   │   ├── PredictionsTable.tsx  # Tabla interactiva
-│   │   │   ├── PredictById.tsx   # Búsqueda por ID
-│   │   │   ├── ModelInfo.tsx     # Info del modelo
-│   │   │   └── ApiDocumentation.tsx  # Docs de API
-│   │   │
-│   │   ├── 📁 data/
-│   │   │   └── mockData.ts       # Datos de ejemplo
-│   │   │
-│   │   └── 📁 lib/
-│   │       ├── types.ts          # Tipos TypeScript
-│   │       └── utils.ts          # Funciones auxiliares
+│   ├── 📁 components/
+│   │   ├── Navbar.tsx        # Responsive navigation
+│   │   ├── Footer.tsx        # Page footer
+│   │   ├── StatsGrid.tsx     # Statistics cards
+│   │   ├── Histogram.tsx     # Distribution chart
+│   │   ├── ScatterPlot.tsx   # Scatter plot
+│   │   ├── PredictionsTable.tsx  # Interactive table
+│   │   ├── PredictById.tsx   # Search by ID
+│   │   └── ApiDocumentation.tsx  # API docs
 │   │
-│   ├── tailwind.config.js        # Config Tailwind
-│   ├── next.config.js            # Config Next.js
-│   └── package.json
+│   └── 📁 lib/
+│       └── api.ts            # API client, types, utilities
 │
-├── 📁 data/
-│   ├── 📁 raw/                   # Datos originales
-│   │   ├── train.csv
-│   │   ├── test.csv
-│   │   └── sample_submission.csv
-│   │
-│   └── 📁 processed/             # Datos procesados
-│       ├── train_processed.csv
-│       ├── test_processed.csv
-│       └── chemprop_test_preds.csv
-│
-├── 📁 notebooks/                  # Jupyter notebooks
-├── 📁 src/                        # Scripts de entrenamiento
-└── 📁 reports/                    # Reportes y figuras
+├── tailwind.config.ts
+├── next.config.js
+├── package.json
+├── CLAUDE.md
+└── README.md
 ```
 
 ---
 
-## 🎨 Tecnologías Utilizadas
+## 🔌 API Client
 
-### Frontend
-- **Next.js 14** - Framework React con App Router
-- **TypeScript** - Tipado estático
-- **Tailwind CSS** - Estilos utilitarios
-- **Framer Motion** - Animaciones
-- **Recharts** - Visualizaciones de datos
-- **Lucide React** - Iconos
+### Configuration
 
-### Backend
-- **FastAPI** - Framework API moderno y rápido
-- **Pydantic** - Validación de datos
-- **Pandas** - Manipulación de datos
-- **Joblib** - Serialización del modelo
-- **ChemProp** - Modelo de ML
-
-### Machine Learning
-- **ChemProp** - D-MPNN para propiedades moleculares
-- **RDKit** - Procesamiento de moléculas (opcional)
-- **Scikit-learn** - Métricas y utilidades
-
----
-
-## 🖌️ Paleta de Colores
-
-El dashboard utiliza una paleta inspirada en Claude de Anthropic:
-
-| Color | Hex | Uso |
-|-------|-----|-----|
-| **Background** | `#1a1a1a` | Fondo principal |
-| **Secondary BG** | `#2a2a2a` | Cards y componentes |
-| **Orange** | `#da7756` | Acentos y CTAs |
-| **Orange Light** | `#e89b7f` | Hover states |
-| **Text** | `#f5f5f5` | Texto principal |
-| **Text Secondary** | `#a0a0a0` | Texto secundario |
-| **Border** | `#404040` | Bordes |
-
----
-
-## 📊 Dataset
-
-### Estadísticas del Dataset de Test
-
-| Métrica | Valor |
-|---------|-------|
-| **Total de muestras** | 667 moléculas |
-| **Media (Tm)** | 275.89 K (2.74°C) |
-| **Desviación estándar** | 82.45 K |
-| **Mínimo** | 88.33 K (-184.82°C) |
-| **Máximo** | 632.45 K (359.30°C) |
-| **Mediana** | 268.59 K (-4.56°C) |
-
-### Formato de Datos
-
-**Input (SMILES):**
-```
-CCOC(=O)c1ccc(O)cc1
+```typescript
+// src/lib/api.ts
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+export const MODEL_MAE = 28.85;      // Model uncertainty in K
+export const MODEL_MAE_STD = 3.16;   // Standard deviation
 ```
 
-**Output (Tm predicho):**
+### Main Functions
+
+```typescript
+// Health & Info
+checkHealth(): Promise<HealthResponse>
+getModelInfo(): Promise<ModelInfo>
+
+// SMILES Validation
+validateSmiles(smiles: string): Promise<ValidateSmilesResponse>
+
+// Predictions
+predictAll(): Promise<Prediction[]>
+predictById(id: number): Promise<Prediction>
+
+// Analytics
+getStatistics(): Promise<Statistics>
+getDistribution(): Promise<DistributionResponse>
+getByFunctionalGroup(): Promise<FunctionalGroupsResponse>
+getByMoleculeSize(): Promise<MoleculeSizeResponse>
+getPredictionsRange(min: number, max: number): Promise<RangeResponse>
+
+// User Compounds
+getCompounds(): Promise<CompoundsListResponse>
+createCompound(smiles: string, name: string): Promise<Compound>
+deleteCompound(id: string): Promise<void>
+
+// Utilities
+kelvinToCelsius(k: number): number  // k - 273.15
 ```
-341.51 K (68.36°C)
-```
 
----
+### Main Types
 
-## 🛠️ Scripts Disponibles
+```typescript
+interface Prediction {
+  id: number;
+  Tm_pred: number;
+  smiles?: string;
+}
 
-### Frontend
+interface Compound {
+  id: string;           // "USR_001"
+  smiles: string;
+  name: string;
+  Tm_pred: number;      // Kelvin
+  Tm_celsius: number;   // Celsius
+  uncertainty: string;  // "±28.9 K"
+  created_at: string;
+  source: string;
+}
 
-```bash
-npm run dev      # Desarrollo con hot-reload
-npm run build    # Build de producción
-npm run start    # Servidor de producción
-npm run lint     # Verificar código
-```
+interface Statistics {
+  count: number;
+  mean: number;
+  std: number;
+  min: number;
+  max: number;
+  median: number;
+  q25: number;
+  q75: number;
+}
 
----
-
-## 🔧 Configuración
-
-### Variables de Entorno (Backend)
-
-Crear archivo `.env` en el directorio backend:
-
-```env
-MODEL_PATH=./models/model.joblib
-TEST_PROCESSED_PATH=../data/processed/test_processed.csv
-```
-
-### Configuración del Frontend
-
-El frontend se conecta al backend en `http://localhost:8000`. Para cambiar esto, modificar las llamadas fetch en los componentes o crear un archivo de configuración.
-
----
-
-## 📝 Uso de la API con Python
-
-```python
-import requests
-
-# Health check
-response = requests.get("http://localhost:8000/health")
-print(response.json())  # {"status": "ok"}
-
-# Predicción por ID
-response = requests.post(
-    "http://localhost:8000/predict-by-id",
-    json={"id": 42}
-)
-print(response.json())  # {"id": 42, "Tm_pred": 234.76}
-
-# Todas las predicciones
-response = requests.get("http://localhost:8000/predict-all")
-predictions = response.json()
-print(f"Total: {len(predictions)} predicciones")
+interface ValidateSmilesResponse {
+  valid: boolean;
+  canonical_smiles?: string;
+  num_atoms?: number;
+  molecular_weight?: number;
+  error?: string;
+}
 ```
 
 ---
 
-## 🤝 Contribuciones
+## 🔬 Real-time SMILES Validation
 
-Las contribuciones son bienvenidas. Por favor:
+### Implementation with Debounce
 
-1. Fork el repositorio
-2. Crea una rama (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit tus cambios (`git commit -m 'Agregar nueva funcionalidad'`)
-4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
-5. Abre un Pull Request
+```typescript
+const [newSmiles, setNewSmiles] = useState('');
+const [smilesValidation, setSmilesValidation] = useState<ValidateSmilesResponse | null>(null);
+
+// 500ms debounce
+useEffect(() => {
+  if (!newSmiles.trim()) {
+    setSmilesValidation(null);
+    return;
+  }
+  
+  const timeout = setTimeout(async () => {
+    const result = await validateSmiles(newSmiles);
+    setSmilesValidation(result);
+  }, 500);
+  
+  return () => clearTimeout(timeout);
+}, [newSmiles]);
+```
+
+### Visual Indicators
+
+- ✅ **Green border** - Valid SMILES
+- ❌ **Red border** - Invalid SMILES
+- ℹ️ Shows atom count and molecular weight when valid
 
 ---
 
-## 📄 Licencia
+## 📦 Main Dependencies
 
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+```json
+{
+  "next": "14.2.x",
+  "react": "18.2.x",
+  "typescript": "5.x",
+  "tailwindcss": "3.x",
+  "framer-motion": "10.x",
+  "recharts": "2.x",
+  "lucide-react": "0.x"
+}
+```
 
 ---
 
-## 🙏 Agradecimientos
+## ⚠️ Important Notes
 
-- [Kaggle](https://www.kaggle.com/) por la competencia y dataset
-- [ChemProp](https://github.com/chemprop/chemprop) por el modelo MPNN
-- [Anthropic](https://www.anthropic.com/) por la inspiración del diseño
+1. **Uncertainty**: Always display ±28.9 K on user compound predictions
+2. **Validation**: Check `smilesValidation?.valid` before enabling "Save"
+3. **Backend**: Ensure it's running on port 8000 before starting frontend
+4. **Container**: Each page must include its own `max-w-7xl mx-auto px-4...` container
+
+---
+
+## 🔧 Troubleshooting
+
+| Problem | Cause | Solution |
+|---------|-------|----------|
+| "Cannot connect to server" | Backend not available | Run `uvicorn app.main:app --reload` |
+| Prediction shows 161 K for water | ChemProp not working | Run `patch_chemprop_torch.py` in backend |
+| Content stuck to edges | Missing container | Add `max-w-7xl mx-auto px-4 py-8` |
+| Empty charts | Data not loaded | Check loading/error states |
+
+---
+
+## 📄 License
+
+MIT License
 
 ---
 
 <div align="center">
 
-**Hecho con 🔥 para la competencia Kaggle Melting Point**
-
-[⬆ Volver arriba](#-melting-point-predictor)
+**Developed for the Kaggle Thermophysical Property Competition** 🔥
 
 </div>
