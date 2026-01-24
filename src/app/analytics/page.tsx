@@ -11,7 +11,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-  Legend,
 } from 'recharts';
 import {
   Loader2,
@@ -42,14 +41,6 @@ import {
 } from '@/lib/api';
 
 // Colores para los gráficos
-const COLORS = {
-  primary: '#da7756',
-  secondary: '#f5a623',
-  tertiary: '#4ade80',
-  quaternary: '#60a5fa',
-  quinary: '#a78bfa',
-};
-
 const DISTRIBUTION_COLORS = ['#60a5fa', '#4ade80', '#f5a623', '#da7756', '#a78bfa'];
 const FUNCTIONAL_COLORS = ['#da7756', '#f5a623', '#4ade80', '#60a5fa', '#a78bfa', '#f472b6'];
 
@@ -58,8 +49,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="glass rounded-xl p-4 shadow-lg border border-claude-border">
-        <p className="text-claude-orange font-semibold mb-2">{data.name || label}</p>
+      <div className="bg-claude-bg-secondary rounded-xl p-4 shadow-lg border border-claude-border">
+        <p className="text-claude-orange font-semibold mb-2">{data.name || data.fullName || label}</p>
         <p className="text-claude-text">
           <span className="text-claude-text-secondary">Cantidad: </span>
           <span className="font-bold">{data.count}</span>
@@ -71,7 +62,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         )}
         {data.avg_tm !== undefined && (
           <p className="text-claude-text-muted text-sm mt-1">
-            Tm promedio: {data.avg_tm.toFixed(1)} K
+            Tm promedio: {data.avg_tm.toFixed(1)} K ({kelvinToCelsius(data.avg_tm).toFixed(1)}°C)
+          </p>
+        )}
+        {data.description && (
+          <p className="text-claude-text-muted text-xs mt-1 italic">
+            {data.description}
           </p>
         )}
       </div>
@@ -114,11 +110,12 @@ export default function AnalyticsPage() {
       ]);
 
       setStats(statsData);
-      setDistribution(distData.categories);
-      setFunctionalGroups(funcData.groups);
-      setMoleculeSizes(sizeData.size_groups);
-      setPredictions(predsData);
+      setDistribution(distData.categories || []);
+      setFunctionalGroups(funcData.groups || []);
+      setMoleculeSizes(sizeData.size_groups || []);
+      setPredictions(predsData || []);
     } catch (err) {
+      console.error('Error loading analytics data:', err);
       setError('No se pudo conectar al backend');
       setIsConnected(false);
     } finally {
@@ -133,9 +130,11 @@ export default function AnalyticsPage() {
   // Estado de carga
   if (isLoading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center">
-        <Loader2 className="w-12 h-12 text-claude-orange animate-spin mb-4" />
-        <p className="text-claude-text-secondary">Cargando analytics...</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="min-h-[60vh] flex flex-col items-center justify-center">
+          <Loader2 className="w-12 h-12 text-claude-orange animate-spin mb-4" />
+          <p className="text-claude-text-secondary">Cargando analytics...</p>
+        </div>
       </div>
     );
   }
@@ -143,28 +142,44 @@ export default function AnalyticsPage() {
   // Estado de error
   if (error) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center">
-        <WifiOff className="w-16 h-16 text-red-400 mb-4" />
-        <h2 className="text-2xl font-bold text-claude-text mb-2">Sin conexión</h2>
-        <p className="text-claude-text-secondary mb-6">{error}</p>
-        <button
-          onClick={loadData}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-claude-orange text-white font-semibold hover:bg-claude-orange-dark transition-colors"
-        >
-          <RefreshCw className="w-5 h-5" />
-          Reintentar
-        </button>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="min-h-[60vh] flex flex-col items-center justify-center">
+          <WifiOff className="w-16 h-16 text-red-400 mb-4" />
+          <h2 className="text-2xl font-bold text-claude-text mb-2">Sin conexión</h2>
+          <p className="text-claude-text-secondary mb-6">{error}</p>
+          <button
+            onClick={loadData}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-claude-orange text-white font-semibold hover:bg-claude-orange-dark transition-colors"
+          >
+            <RefreshCw className="w-5 h-5" />
+            Reintentar
+          </button>
+        </div>
       </div>
     );
   }
 
+  // Preparar datos para gráfico de distribución (nombres más cortos para el eje Y)
+  const distributionChartData = distribution.map((cat) => ({
+    ...cat,
+    shortName: cat.name.split(' ')[0] + (cat.name.includes('(') ? '' : ''), // "Muy bajo (<150K)" -> "Muy"
+    fullName: cat.name,
+  }));
+
+  // Preparar datos para gráfico de grupos funcionales (nombres más cortos)
+  const functionalGroupsChartData = functionalGroups.map((group) => ({
+    ...group,
+    shortName: group.name.split(' ')[0], // "Alcohols (OH)" -> "Alcohols"
+    fullName: group.name,
+  }));
+
   return (
-    <div className="space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
       >
         <div>
           <h1 className="text-3xl font-bold text-claude-text flex items-center gap-3">
@@ -175,11 +190,18 @@ export default function AnalyticsPage() {
             Análisis estadístico de las predicciones de punto de fusión
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
           <span className="text-sm text-claude-text-muted">
             {stats?.count.toLocaleString()} moléculas
           </span>
+          <button
+            onClick={loadData}
+            className="p-2 rounded-lg hover:bg-claude-bg-tertiary transition-colors"
+            title="Actualizar datos"
+          >
+            <RefreshCw className="w-4 h-4 text-claude-text-muted" />
+          </button>
         </div>
       </motion.div>
 
@@ -193,7 +215,8 @@ export default function AnalyticsPage() {
         >
           <div className="glass rounded-xl p-4 border border-claude-border">
             <p className="text-claude-text-muted text-sm">Total</p>
-            <p className="text-2xl font-bold text-claude-text">{stats.count}</p>
+            <p className="text-2xl font-bold text-claude-text">{stats.count.toLocaleString()}</p>
+            <p className="text-xs text-claude-text-muted">moléculas</p>
           </div>
           <div className="glass rounded-xl p-4 border border-claude-border">
             <p className="text-claude-text-muted text-sm">Media</p>
@@ -203,15 +226,44 @@ export default function AnalyticsPage() {
           <div className="glass rounded-xl p-4 border border-claude-border">
             <p className="text-claude-text-muted text-sm">Mínimo</p>
             <p className="text-2xl font-bold text-blue-400">{stats.min.toFixed(1)} K</p>
+            <p className="text-xs text-claude-text-muted">{kelvinToCelsius(stats.min).toFixed(1)}°C</p>
           </div>
           <div className="glass rounded-xl p-4 border border-claude-border">
             <p className="text-claude-text-muted text-sm">Máximo</p>
             <p className="text-2xl font-bold text-red-400">{stats.max.toFixed(1)} K</p>
+            <p className="text-xs text-claude-text-muted">{kelvinToCelsius(stats.max).toFixed(1)}°C</p>
           </div>
         </motion.div>
       )}
 
-      {/* Distribution Chart - BAR CHART (antes era pie) */}
+      {/* Segunda fila de stats */}
+      {stats && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4"
+        >
+          <div className="glass rounded-xl p-4 border border-claude-border">
+            <p className="text-claude-text-muted text-sm">Mediana</p>
+            <p className="text-xl font-bold text-claude-text">{stats.median.toFixed(1)} K</p>
+          </div>
+          <div className="glass rounded-xl p-4 border border-claude-border">
+            <p className="text-claude-text-muted text-sm">Desv. Estándar</p>
+            <p className="text-xl font-bold text-claude-text">±{stats.std.toFixed(1)} K</p>
+          </div>
+          <div className="glass rounded-xl p-4 border border-claude-border">
+            <p className="text-claude-text-muted text-sm">Q25</p>
+            <p className="text-xl font-bold text-claude-text">{stats.q25.toFixed(1)} K</p>
+          </div>
+          <div className="glass rounded-xl p-4 border border-claude-border">
+            <p className="text-claude-text-muted text-sm">Q75</p>
+            <p className="text-xl font-bold text-claude-text">{stats.q75.toFixed(1)} K</p>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Distribution Chart - BAR CHART */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -230,45 +282,60 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={distribution}
-              layout="vertical"
-              margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" horizontal={true} vertical={false} />
-              <XAxis type="number" tick={{ fill: '#a0a0a0', fontSize: 12 }} />
-              <YAxis
-                dataKey="name"
-                type="category"
-                tick={{ fill: '#a0a0a0', fontSize: 11 }}
-                width={90}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                {distribution.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={DISTRIBUTION_COLORS[index % DISTRIBUTION_COLORS.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Leyenda */}
-        <div className="mt-4 flex flex-wrap justify-center gap-4 text-sm">
-          {distribution.map((cat, index) => (
-            <div key={cat.name} className="flex items-center gap-2">
-              <div
-                className="w-3 h-3 rounded"
-                style={{ backgroundColor: DISTRIBUTION_COLORS[index % DISTRIBUTION_COLORS.length] }}
-              />
-              <span className="text-claude-text-secondary">
-                {cat.name}: {cat.count} ({cat.percentage}%)
-              </span>
+        {distribution.length > 0 ? (
+          <>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={distributionChartData}
+                  layout="vertical"
+                  margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" horizontal={true} vertical={false} />
+                  <XAxis 
+                    type="number" 
+                    tick={{ fill: '#a0a0a0', fontSize: 12 }} 
+                    tickFormatter={(value) => value.toLocaleString()}
+                  />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    tick={{ fill: '#a0a0a0', fontSize: 11 }}
+                    width={110}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                    {distributionChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={DISTRIBUTION_COLORS[index % DISTRIBUTION_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-          ))}
-        </div>
+
+            {/* Leyenda */}
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+              {distribution.map((cat, index) => (
+                <div key={cat.name} className="flex items-center gap-2 p-2 rounded-lg bg-claude-bg-tertiary/50">
+                  <div
+                    className="w-3 h-3 rounded flex-shrink-0"
+                    style={{ backgroundColor: DISTRIBUTION_COLORS[index % DISTRIBUTION_COLORS.length] }}
+                  />
+                  <div className="min-w-0">
+                    <span className="text-claude-text font-medium">{cat.name}</span>
+                    <span className="text-claude-text-muted ml-2">
+                      {cat.count} ({cat.percentage.toFixed(1)}%)
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="h-80 flex items-center justify-center text-claude-text-muted">
+            No hay datos de distribución disponibles
+          </div>
+        )}
       </motion.div>
 
       {/* Functional Groups Chart - BAR CHART */}
@@ -290,62 +357,74 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={functionalGroups}
-              layout="vertical"
-              margin={{ top: 5, right: 30, left: 140, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" horizontal={true} vertical={false} />
-              <XAxis type="number" tick={{ fill: '#a0a0a0', fontSize: 12 }} />
-              <YAxis
-                dataKey="name"
-                type="category"
-                tick={{ fill: '#a0a0a0', fontSize: 11 }}
-                width={130}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                {functionalGroups.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={FUNCTIONAL_COLORS[index % FUNCTIONAL_COLORS.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        {functionalGroups.length > 0 ? (
+          <>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={functionalGroupsChartData}
+                  layout="vertical"
+                  margin={{ top: 5, right: 30, left: 150, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" horizontal={true} vertical={false} />
+                  <XAxis 
+                    type="number" 
+                    tick={{ fill: '#a0a0a0', fontSize: 12 }} 
+                    tickFormatter={(value) => value.toLocaleString()}
+                  />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    tick={{ fill: '#a0a0a0', fontSize: 11 }}
+                    width={140}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                    {functionalGroupsChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={FUNCTIONAL_COLORS[index % FUNCTIONAL_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
 
-        {/* Tabla de detalles */}
-        <div className="mt-6 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-claude-border">
-                <th className="text-left py-2 text-claude-text-muted font-medium">Grupo</th>
-                <th className="text-right py-2 text-claude-text-muted font-medium">Cantidad</th>
-                <th className="text-right py-2 text-claude-text-muted font-medium">Tm Promedio</th>
-                <th className="text-right py-2 text-claude-text-muted font-medium">Rango</th>
-              </tr>
-            </thead>
-            <tbody>
-              {functionalGroups.map((group, index) => (
-                <tr key={group.name} className="border-b border-claude-border/50">
-                  <td className="py-2 flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded"
-                      style={{ backgroundColor: FUNCTIONAL_COLORS[index % FUNCTIONAL_COLORS.length] }}
-                    />
-                    <span className="text-claude-text">{group.name}</span>
-                  </td>
-                  <td className="text-right py-2 text-claude-text-secondary">{group.count}</td>
-                  <td className="text-right py-2 text-claude-orange font-medium">{group.avg_tm.toFixed(1)} K</td>
-                  <td className="text-right py-2 text-claude-text-muted text-xs">
-                    {group.min_tm.toFixed(0)} - {group.max_tm.toFixed(0)} K
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            {/* Tabla de detalles */}
+            <div className="mt-6 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-claude-border">
+                    <th className="text-left py-2 text-claude-text-muted font-medium">Grupo</th>
+                    <th className="text-right py-2 text-claude-text-muted font-medium">Cantidad</th>
+                    <th className="text-right py-2 text-claude-text-muted font-medium">Tm Promedio</th>
+                    <th className="text-right py-2 text-claude-text-muted font-medium hidden sm:table-cell">Rango</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {functionalGroups.map((group, index) => (
+                    <tr key={group.name} className="border-b border-claude-border/50 hover:bg-claude-bg-tertiary/50">
+                      <td className="py-2 flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded flex-shrink-0"
+                          style={{ backgroundColor: FUNCTIONAL_COLORS[index % FUNCTIONAL_COLORS.length] }}
+                        />
+                        <span className="text-claude-text">{group.name}</span>
+                      </td>
+                      <td className="text-right py-2 text-claude-text-secondary">{group.count.toLocaleString()}</td>
+                      <td className="text-right py-2 text-claude-orange font-medium">{group.avg_tm.toFixed(1)} K</td>
+                      <td className="text-right py-2 text-claude-text-muted text-xs hidden sm:table-cell">
+                        {group.min_tm.toFixed(0)} - {group.max_tm.toFixed(0)} K
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          <div className="h-80 flex items-center justify-center text-claude-text-muted">
+            No hay datos de grupos funcionales disponibles
+          </div>
+        )}
       </motion.div>
 
       {/* Molecule Size Chart */}
@@ -367,17 +446,33 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={moleculeSizes} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" vertical={false} />
-              <XAxis dataKey="name" tick={{ fill: '#a0a0a0', fontSize: 10 }} />
-              <YAxis tick={{ fill: '#a0a0a0', fontSize: 12 }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="count" fill="#a78bfa" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        {moleculeSizes.length > 0 ? (
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={moleculeSizes} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" vertical={false} />
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fill: '#a0a0a0', fontSize: 10 }} 
+                  interval={0}
+                  angle={-15}
+                  textAnchor="end"
+                  height={60}
+                />
+                <YAxis 
+                  tick={{ fill: '#a0a0a0', fontSize: 12 }} 
+                  tickFormatter={(value) => value.toLocaleString()}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="count" fill="#a78bfa" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="h-64 flex items-center justify-center text-claude-text-muted">
+            No hay datos de tamaño molecular disponibles
+          </div>
+        )}
       </motion.div>
 
       {/* Lista de Todas las Predicciones (Test Set) */}
@@ -398,7 +493,7 @@ export default function AnalyticsPage() {
             <div className="text-left">
               <h3 className="text-xl font-bold text-claude-text">Todas las Predicciones del Test</h3>
               <p className="text-claude-text-secondary text-sm">
-                {predictions.length} compuestos predichos (sin compuestos de usuario)
+                {predictions.length.toLocaleString()} compuestos predichos (sin compuestos de usuario)
               </p>
             </div>
           </div>
@@ -414,23 +509,23 @@ export default function AnalyticsPage() {
             <table className="w-full">
               <thead className="sticky top-0 bg-claude-bg-secondary">
                 <tr className="border-b border-claude-border">
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-claude-text-muted uppercase">ID</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-claude-text-muted uppercase">Tm (K)</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-claude-text-muted uppercase">Tm (°C)</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-claude-text-muted uppercase">ID</th>
+                  <th className="px-4 sm:px-6 py-3 text-right text-xs font-semibold text-claude-text-muted uppercase">Tm (K)</th>
+                  <th className="px-4 sm:px-6 py-3 text-right text-xs font-semibold text-claude-text-muted uppercase">Tm (°C)</th>
                 </tr>
               </thead>
               <tbody>
                 {predictions.map((pred) => (
                   <tr key={pred.id} className="border-b border-claude-border/50 hover:bg-claude-orange/5">
-                    <td className="px-6 py-3">
+                    <td className="px-4 sm:px-6 py-3">
                       <span className="px-2 py-1 rounded bg-claude-bg-tertiary text-claude-text font-mono text-sm">
                         {pred.id}
                       </span>
                     </td>
-                    <td className="px-6 py-3 text-right">
+                    <td className="px-4 sm:px-6 py-3 text-right">
                       <span className="text-claude-orange font-bold">{pred.Tm_pred.toFixed(2)}</span>
                     </td>
-                    <td className="px-6 py-3 text-right text-claude-text-muted">
+                    <td className="px-4 sm:px-6 py-3 text-right text-claude-text-muted">
                       {kelvinToCelsius(pred.Tm_pred).toFixed(1)}
                     </td>
                   </tr>
