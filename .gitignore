@@ -114,5 +114,3 @@ public/workbox-*.js.map
 /playwright-report/
 /playwright/.cache/
 CLAUDE.md
-package.json
-package-lock.json

@@ -9,7 +9,7 @@
 
 **Interactive dashboard for molecular melting point predictions**
 
-[Demo](#-pages) • [Installation](#-installation) • [Structure](#-project-structure) • [API Client](#-api-client)
+[Pages](#-pages) • [Installation](#-installation) • [Structure](#-project-structure) • [API Client](#-api-client)
 
 </div>
 
@@ -60,14 +60,10 @@ cd MeltingPoint/frontend
 # 2. Install dependencies
 npm install
 
-# 3. Configure environment variable (optional)
-# Create .env.local file
-echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
-
-# 4. Run in development mode
+# 3. Run in development mode
 npm run dev
 
-# 5. Open in browser
+# 4. Open in browser
 # http://localhost:3000
 ```
 

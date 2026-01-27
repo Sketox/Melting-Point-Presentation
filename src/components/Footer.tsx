@@ -53,11 +53,11 @@ export default function Footer() {
             <h4 className="text-claude-text font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2">
               {[
-                { href: '/', label: 'Home' },
-                { href: '/predictions', label: 'Predictions' },
+                { href: '/', label: 'Inicio' },
+                { href: '/predictions', label: 'Predicciones' },
                 { href: '/analytics', label: 'Analytics' },
-                { href: '/model', label: 'Model Info' },
-                { href: '/api-docs', label: 'API Docs' },
+                { href: '/model', label: 'Modelo' },
+                { href: '/api-docs', label: 'API' },
               ].map((link) => (
                 <li key={link.href}>
                   <Link
