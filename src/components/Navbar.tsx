@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Flame, 
   Home,
@@ -14,8 +15,9 @@ import {
   Code,
   Menu,
   X,
-  Github,
-  ExternalLink
+  User,
+  LogIn,
+  LogOut
 } from 'lucide-react';
 
 const navItems = [
@@ -31,6 +33,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, isAuthenticated, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -112,34 +115,61 @@ export default function Navbar() {
 
             {/* Actions */}
             <div className="flex items-center gap-2">
-              <a
-                href="https://www.kaggle.com/competitions/playground-series-s5e6"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="
-                  hidden md:flex items-center gap-2 px-3 py-2 
-                  rounded-lg border border-claude-border
-                  text-claude-text-secondary hover:text-claude-text
-                  hover:border-claude-orange/50 transition-all text-sm
-                "
-              >
-                <ExternalLink className="w-4 h-4" />
-                <span className="hidden xl:inline">Kaggle</span>
-              </a>
-              <a
-                href="https://github.com/Sketox/Melting-Point"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="
-                  flex items-center gap-2 px-3 py-2 
-                  rounded-lg bg-claude-orange/10 border border-claude-orange/20
-                  text-claude-orange hover:bg-claude-orange/20
-                  transition-all text-sm font-medium
-                "
-              >
-                <Github className="w-4 h-4" />
-                <span className="hidden sm:inline">GitHub</span>
-              </a>
+              {/* Auth Buttons */}
+              {isAuthenticated ? (
+                <div className="hidden md:flex items-center gap-2">
+                  <Link
+                    href="/profile"
+                    className="
+                      flex items-center gap-2 px-3 py-2 
+                      rounded-lg border border-claude-border
+                      text-claude-text-secondary hover:text-claude-text
+                      hover:border-claude-orange/50 transition-all text-sm
+                    "
+                  >
+                    <User className="w-4 h-4" />
+                    <span className="hidden xl:inline">{user?.username}</span>
+                  </Link>
+                  <button
+                    onClick={logout}
+                    className="
+                      flex items-center gap-2 px-3 py-2 
+                      rounded-lg border border-claude-border
+                      text-claude-text-secondary hover:text-red-500
+                      hover:border-red-500/50 transition-all text-sm
+                    "
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="hidden md:flex items-center gap-2">
+                  <Link
+                    href="/auth/login"
+                    className="
+                      flex items-center gap-2 px-3 py-2 
+                      rounded-lg border border-claude-border
+                      text-claude-text-secondary hover:text-claude-text
+                      hover:border-claude-orange/50 transition-all text-sm
+                    "
+                  >
+                    <LogIn className="w-4 h-4" />
+                    <span className="hidden xl:inline">Iniciar Sesión</span>
+                  </Link>
+                  <Link
+                    href="/auth/register"
+                    className="
+                      flex items-center gap-2 px-3 py-2 
+                      rounded-lg bg-claude-orange/10 border border-claude-orange/20
+                      text-claude-orange hover:bg-claude-orange/20
+                      transition-all text-sm font-medium
+                    "
+                  >
+                    <User className="w-4 h-4" />
+                    <span className="hidden xl:inline">Registrarse</span>
+                  </Link>
+                </div>
+              )}
 
               {/* Mobile Menu Button */}
               <button
@@ -191,6 +221,61 @@ export default function Navbar() {
                     </Link>
                   );
                 })}
+                
+                {/* Mobile Auth Links */}
+                <div className="pt-2 mt-2 border-t border-claude-border">
+                  {isAuthenticated ? (
+                    <>
+                      <Link
+                        href="/profile"
+                        className="
+                          flex items-center gap-3 px-4 py-3 rounded-xl
+                          text-claude-text-secondary hover:text-claude-text hover:bg-claude-bg-secondary
+                          transition-all
+                        "
+                      >
+                        <User className="w-5 h-5" />
+                        <span className="font-medium">{user?.username}</span>
+                      </Link>
+                      <button
+                        onClick={logout}
+                        className="
+                          w-full flex items-center gap-3 px-4 py-3 rounded-xl
+                          text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30
+                          transition-all
+                        "
+                      >
+                        <LogOut className="w-5 h-5" />
+                        <span className="font-medium">Cerrar Sesión</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link
+                        href="/auth/login"
+                        className="
+                          flex items-center gap-3 px-4 py-3 rounded-xl
+                          text-claude-text-secondary hover:text-claude-text hover:bg-claude-bg-secondary
+                          transition-all
+                        "
+                      >
+                        <LogIn className="w-5 h-5" />
+                        <span className="font-medium">Iniciar Sesión</span>
+                      </Link>
+                      <Link
+                        href="/auth/register"
+                        className="
+                          flex items-center gap-3 px-4 py-3 rounded-xl
+                          bg-claude-orange/10 text-claude-orange border border-claude-orange/30
+                          hover:bg-claude-orange/20 transition-all
+                        "
+                      >
+                        <User className="w-5 h-5" />
+                        <span className="font-medium">Registrarse</span>
+                      </Link>
+                    </>
+                  )}
+                </div>
               </nav>
             </div>
           </motion.div>
