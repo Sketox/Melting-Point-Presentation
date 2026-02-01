@@ -10,8 +10,10 @@ import {
   Beaker,
   Thermometer,
   Copy,
-  Check
+  Check,
+  FlaskConical
 } from 'lucide-react';
+import { generateCompoundName } from '@/lib/chemUtils';
 
 interface Prediction {
   id: number;
@@ -23,7 +25,7 @@ interface PredictionsTableProps {
   predictions: Prediction[];
 }
 
-type SortField = 'id' | 'smiles' | 'Tm_pred';
+type SortField = 'id' | 'smiles' | 'Tm_pred' | 'name';
 type SortDirection = 'asc' | 'desc';
 
 export default function PredictionsTable({ predictions }: PredictionsTableProps) {
@@ -35,17 +37,26 @@ export default function PredictionsTable({ predictions }: PredictionsTableProps)
   const itemsPerPage = 10;
 
   const filteredAndSorted = useMemo(() => {
-    let result = predictions.filter(p => 
-      p.smiles.toLowerCase().includes(search.toLowerCase()) ||
-      p.id.toString().includes(search) ||
-      p.Tm_pred.toFixed(2).includes(search)
-    );
+    let result = predictions.filter(p => {
+      const compoundName = generateCompoundName(p.smiles);
+      return (
+        p.smiles.toLowerCase().includes(search.toLowerCase()) ||
+        p.id.toString().includes(search) ||
+        p.Tm_pred.toFixed(2).includes(search) ||
+        compoundName.toLowerCase().includes(search.toLowerCase())
+      );
+    });
 
     result.sort((a, b) => {
       let comparison = 0;
       if (sortField === 'id') comparison = a.id - b.id;
       else if (sortField === 'smiles') comparison = a.smiles.localeCompare(b.smiles);
       else if (sortField === 'Tm_pred') comparison = a.Tm_pred - b.Tm_pred;
+      else if (sortField === 'name') {
+        const nameA = generateCompoundName(a.smiles);
+        const nameB = generateCompoundName(b.smiles);
+        comparison = nameA.localeCompare(nameB);
+      }
       return sortDirection === 'asc' ? comparison : -comparison;
     });
 
@@ -113,7 +124,7 @@ export default function PredictionsTable({ predictions }: PredictionsTableProps)
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-claude-text-muted" />
             <input
               type="text"
-              placeholder="Buscar por SMILES, ID o Tm..."
+              placeholder="Buscar por nombre, SMILES, ID o Tm..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -147,10 +158,20 @@ export default function PredictionsTable({ predictions }: PredictionsTableProps)
               </th>
               <th 
                 className="px-6 py-4 text-left cursor-pointer hover:bg-claude-orange/5 transition-colors"
+                onClick={() => handleSort('name')}
+              >
+                <div className="flex items-center gap-2">
+                  <FlaskConical className="w-4 h-4" />
+                  Nombre del Compuesto
+                  <SortIcon field="name" />
+                </div>
+              </th>
+              <th 
+                className="px-6 py-4 text-left cursor-pointer hover:bg-claude-orange/5 transition-colors"
                 onClick={() => handleSort('smiles')}
               >
                 <div className="flex items-center gap-2">
-                  Estructura SMILES
+                  SMILES
                   <SortIcon field="smiles" />
                 </div>
               </th>
@@ -160,7 +181,7 @@ export default function PredictionsTable({ predictions }: PredictionsTableProps)
               >
                 <div className="flex items-center gap-2">
                   <Thermometer className="w-4 h-4" />
-                  Tm Predicho
+                  Punto de Fusión
                   <SortIcon field="Tm_pred" />
                 </div>
               </th>
@@ -186,9 +207,19 @@ export default function PredictionsTable({ predictions }: PredictionsTableProps)
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <code className="molecule-text text-claude-text-secondary bg-claude-bg px-3 py-1.5 rounded-lg border border-claude-border">
-                      {prediction.smiles.length > 40 
-                        ? `${prediction.smiles.substring(0, 40)}...` 
+                    <div className="flex flex-col gap-1">
+                      <span className="text-claude-text font-medium">
+                        {generateCompoundName(prediction.smiles)}
+                      </span>
+                      <span className="text-xs text-claude-text-muted">
+                        {prediction.smiles.length > 30 ? 'Estructura compleja' : 'Estructura simple'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <code className="molecule-text text-claude-text-secondary bg-claude-bg px-3 py-1.5 rounded-lg border border-claude-border text-xs">
+                      {prediction.smiles.length > 30
+                        ? `${prediction.smiles.substring(0, 30)}...` 
                         : prediction.smiles}
                     </code>
                   </td>

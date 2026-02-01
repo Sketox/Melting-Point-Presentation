@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { generateCompoundName } from '@/lib/chemUtils';
 import {
   BarChart,
   Bar,
@@ -274,12 +275,34 @@ export default function AnalyticsPage() {
           <div className="p-2 rounded-xl bg-claude-orange/20 text-claude-orange">
             <Thermometer className="w-5 h-5" />
           </div>
-          <div>
+          <div className="flex-1">
             <h3 className="text-xl font-bold text-claude-text">Distribución por Temperatura</h3>
             <p className="text-claude-text-secondary text-sm">
               Categorización por rango de Tm ({stats?.count} moléculas)
             </p>
           </div>
+        </div>
+
+        {/* Descripción explicativa */}
+        <div className="mb-4 p-4 rounded-xl bg-claude-bg-tertiary/50 border border-claude-border/50">
+          <p className="text-sm text-claude-text-secondary leading-relaxed">
+            <span className="font-semibold text-claude-text">¿Qué representa este gráfico?</span><br />
+            Muestra la distribución del conjunto de datos de prueba clasificando las moléculas según su punto de fusión predicho. 
+          </p>
+          <ul className="mt-2 space-y-1 text-sm text-claude-text-secondary ml-4">
+            <li className="flex items-start gap-2">
+              <span className="text-claude-orange mt-0.5">•</span>
+              <span><strong className="text-claude-text">Representatividad:</strong> El modelo es más preciso en rangos con más ejemplos (Medio: 250-350K)</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-blue-400 mt-0.5">•</span>
+              <span><strong className="text-claude-text">Limitaciones:</strong> Mayor incertidumbre en temperaturas extremas por tener pocos datos de entrenamiento</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-emerald-400 mt-0.5">•</span>
+              <span><strong className="text-claude-text">Aplicabilidad:</strong> Define el rango donde las predicciones son más confiables</span>
+            </li>
+          </ul>
         </div>
 
         {distribution.length > 0 ? (
@@ -313,22 +336,37 @@ export default function AnalyticsPage() {
               </ResponsiveContainer>
             </div>
 
-            {/* Leyenda */}
+            {/* Leyenda con interpretación */}
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-              {distribution.map((cat, index) => (
-                <div key={cat.name} className="flex items-center gap-2 p-2 rounded-lg bg-claude-bg-tertiary/50">
-                  <div
-                    className="w-3 h-3 rounded flex-shrink-0"
-                    style={{ backgroundColor: DISTRIBUTION_COLORS[index % DISTRIBUTION_COLORS.length] }}
-                  />
-                  <div className="min-w-0">
-                    <span className="text-claude-text font-medium">{cat.name}</span>
-                    <span className="text-claude-text-muted ml-2">
-                      {cat.count} ({cat.percentage.toFixed(1)}%)
-                    </span>
+              {distribution.map((cat, index) => {
+                const interpretations: Record<string, string> = {
+                  'Muy bajo (<150K)': 'Gases/líquidos volátiles',
+                  'Bajo (150-250K)': 'Líquidos/sólidos blandos',
+                  'Medio (250-350K)': 'Moléculas orgánicas típicas',
+                  'Alto (350-450K)': 'Sólidos cristalinos estables',
+                  'Muy alto (>450K)': 'Compuestos excepcionales'
+                };
+                
+                return (
+                  <div key={cat.name} className="flex items-start gap-2 p-3 rounded-lg bg-claude-bg-tertiary/50 border border-claude-border/30">
+                    <div
+                      className="w-3 h-3 rounded flex-shrink-0 mt-1"
+                      style={{ backgroundColor: DISTRIBUTION_COLORS[index % DISTRIBUTION_COLORS.length] }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-claude-text font-semibold">{cat.name}</span>
+                      </div>
+                      <div className="text-claude-text-muted text-xs mt-0.5">
+                        {cat.count} moléculas ({cat.percentage.toFixed(1)}%)
+                      </div>
+                      <div className="text-claude-text-secondary text-xs mt-1 italic">
+                        {interpretations[cat.name] || 'Otro rango'}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </>
         ) : (
@@ -510,6 +548,7 @@ export default function AnalyticsPage() {
               <thead className="sticky top-0 bg-claude-bg-secondary">
                 <tr className="border-b border-claude-border">
                   <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-claude-text-muted uppercase">ID</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-claude-text-muted uppercase">Nombre del Compuesto</th>
                   <th className="px-4 sm:px-6 py-3 text-right text-xs font-semibold text-claude-text-muted uppercase">Tm (K)</th>
                   <th className="px-4 sm:px-6 py-3 text-right text-xs font-semibold text-claude-text-muted uppercase">Tm (°C)</th>
                 </tr>
@@ -521,6 +560,9 @@ export default function AnalyticsPage() {
                       <span className="px-2 py-1 rounded bg-claude-bg-tertiary text-claude-text font-mono text-sm">
                         {pred.id}
                       </span>
+                    </td>
+                    <td className="px-4 sm:px-6 py-3">
+                      <span className="text-claude-text text-sm">{generateCompoundName(pred.smiles || '')}</span>
                     </td>
                     <td className="px-4 sm:px-6 py-3 text-right">
                       <span className="text-claude-orange font-bold">{pred.Tm_pred.toFixed(2)}</span>
