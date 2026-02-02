@@ -41,3 +41,30 @@ export interface EndpointInfo {
   requestBody?: string;
   responseExample: string;
 }
+
+export interface UserPrediction {
+  id: string;
+  user_id: string;
+  username: string;
+  smiles: string;
+  tm_pred: number;
+  tm_pred_celsius: number;
+  compound_name?: string;
+  notes?: string;
+  is_favorite: boolean;
+  created_at: string;
+}
+
+export interface SavePredictionData {
+  smiles: string;
+  tm_pred: number;
+  compound_name?: string;
+  notes?: string;
+  is_favorite?: boolean;
+}
+
+export interface UpdatePredictionData {
+  compound_name?: string;
+  notes?: string;
+  is_favorite?: boolean;
+}

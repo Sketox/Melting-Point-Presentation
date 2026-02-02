@@ -17,7 +17,8 @@ import {
   X,
   User,
   LogIn,
-  LogOut
+  LogOut,
+  Bookmark
 } from 'lucide-react';
 
 const navItems = [
@@ -25,6 +26,7 @@ const navItems = [
   { href: '/predictions', label: 'Predicciones', icon: Table2 },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/model', label: 'Modelo', icon: Brain },
+  { href: '/my-predictions', label: 'Mis Predicciones', icon: Bookmark, authRequired: true },
   { href: '/about', label: 'Acerca de', icon: Info },
   { href: '/api-docs', label: 'API', icon: Code },
 ];
@@ -83,6 +85,9 @@ export default function Navbar() {
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center gap-1">
               {navItems.map((item) => {
+                // Skip auth-required items if not authenticated
+                if (item.authRequired && !isAuthenticated) return null;
+                
                 const isActive = pathname === item.href;
                 const Icon = item.icon;
                 
@@ -200,6 +205,9 @@ export default function Navbar() {
             <div className="bg-claude-bg/98 backdrop-blur-lg border-b border-claude-border shadow-xl">
               <nav className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-1">
                 {navItems.map((item) => {
+                  // Skip auth-required items if not authenticated
+                  if (item.authRequired && !isAuthenticated) return null;
+                  
                   const isActive = pathname === item.href;
                   const Icon = item.icon;
                   

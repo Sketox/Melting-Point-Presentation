@@ -250,6 +250,99 @@ export function kelvinToCelsius(kelvin: number): number {
   return kelvin - 273.15;
 }
 
+// ============================================
+// USER PREDICTIONS ENDPOINTS (Authenticated)
+// ============================================
+
+export interface UserPrediction {
+  id: string;
+  user_id: string;
+  username: string;
+  smiles: string;
+  tm_pred: number;
+  tm_pred_celsius: number;
+  compound_name?: string;
+  notes?: string;
+  is_favorite: boolean;
+  created_at: string;
+}
+
+export interface SavePredictionData {
+  smiles: string;
+  tm_pred: number;
+  compound_name?: string;
+  notes?: string;
+  is_favorite?: boolean;
+}
+
+export interface UpdatePredictionData {
+  compound_name?: string;
+  notes?: string;
+  is_favorite?: boolean;
+}
+
+function getAuthHeaders(): HeadersInit {
+  const token = localStorage.getItem('auth_token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+}
+
+export async function savePrediction(data: SavePredictionData): Promise<UserPrediction> {
+  return fetchApi<UserPrediction>('/auth/user-predictions/', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getMyPredictions(
+  skip: number = 0,
+  limit: number = 50,
+  favoritesOnly: boolean = false
+): Promise<UserPrediction[]> {
+  const params = new URLSearchParams({
+    skip: skip.toString(),
+    limit: limit.toString(),
+    favorites_only: favoritesOnly.toString(),
+  });
+  return fetchApi<UserPrediction[]>(`/auth/user-predictions/?${params}`, {
+    headers: getAuthHeaders(),
+  });
+}
+
+export async function getPrediction(predictionId: string): Promise<UserPrediction> {
+  return fetchApi<UserPrediction>(`/auth/user-predictions/${predictionId}`, {
+    headers: getAuthHeaders(),
+  });
+}
+
+export async function updatePrediction(
+  predictionId: string,
+  data: UpdatePredictionData
+): Promise<UserPrediction> {
+  return fetchApi<UserPrediction>(`/auth/user-predictions/${predictionId}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deletePrediction(predictionId: string): Promise<{ message: string; prediction_id: string }> {
+  return fetchApi<{ message: string; prediction_id: string }>(`/auth/user-predictions/${predictionId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+}
+
+export async function searchPredictionsBySmiles(smiles: string): Promise<UserPrediction[]> {
+  const params = new URLSearchParams({ smiles });
+  return fetchApi<UserPrediction[]>(`/auth/user-predictions/search/by-smiles?${params}`, {
+    headers: getAuthHeaders(),
+  });
+}
+
 // Constantes del modelo
 export const MODEL_MAE = 28.85;
 export const MODEL_MAE_STD = 3.16;

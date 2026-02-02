@@ -23,6 +23,7 @@ import {
   XCircle,
   Info,
 } from 'lucide-react';
+import SavePredictionButton from '@/components/SavePredictionButton';
 import { 
   predictAll, 
   predictById, 
@@ -334,18 +335,33 @@ export default function PredictionsPage() {
               </motion.div>
             )}
             {searchResult && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 rounded-xl bg-gradient-to-r from-claude-orange/20 to-claude-orange/5 border border-claude-orange/30">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-claude-text-muted text-sm">Molécula #{searchResult.id}</p>
-                    <p className="text-2xl font-bold text-claude-orange">{searchResult.Tm_pred.toFixed(2)} K</p>
-                    <p className="text-claude-text-secondary">{kelvinToCelsius(searchResult.Tm_pred).toFixed(1)}°C</p>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                <div className="p-4 rounded-xl bg-gradient-to-r from-claude-orange/20 to-claude-orange/5 border border-claude-orange/30">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-claude-text-muted text-sm">Molécula #{searchResult.id}</p>
+                      <p className="text-2xl font-bold text-claude-orange">{searchResult.Tm_pred.toFixed(2)} K</p>
+                      <p className="text-claude-text-secondary">{kelvinToCelsius(searchResult.Tm_pred).toFixed(1)}°C</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-claude-text-muted">Incertidumbre</p>
+                      <p className="text-claude-orange font-medium">±{MODEL_MAE.toFixed(1)} K</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs text-claude-text-muted">Incertidumbre</p>
-                    <p className="text-claude-orange font-medium">±{MODEL_MAE.toFixed(1)} K</p>
-                  </div>
+                  {searchResult.smiles && (
+                    <div className="bg-claude-bg/50 rounded-lg p-3 mb-4">
+                      <p className="text-xs text-claude-text-muted mb-1">SMILES</p>
+                      <p className="font-mono text-sm text-claude-text break-all">{searchResult.smiles}</p>
+                    </div>
+                  )}
                 </div>
+                {searchResult.smiles && (
+                  <SavePredictionButton 
+                    smiles={searchResult.smiles}
+                    tmPred={searchResult.Tm_pred}
+                    defaultCompoundName={`Molécula #${searchResult.id}`}
+                  />
+                )}
               </motion.div>
             )}
           </AnimatePresence>

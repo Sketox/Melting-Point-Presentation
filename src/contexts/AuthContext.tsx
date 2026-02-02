@@ -35,6 +35,7 @@ interface AuthContextType {
   register: (username: string, email: string, password: string, fullName?: string) => Promise<void>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
+  refreshUser: () => Promise<void>;
 }
 
 // Context
@@ -196,6 +197,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Refrescar usuario desde el backend
+  const refreshUser = async () => {
+    try {
+      const storedToken = localStorage.getItem('auth_token');
+      if (!storedToken) {
+        throw new Error('No token found');
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${storedToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user');
+      }
+
+      const userData = await response.json();
+      setUser(userData);
+      localStorage.setItem('auth_user', JSON.stringify(userData));
+    } catch (error) {
+      console.error('Error refreshing user:', error);
+      throw error;
+    }
+  };
+
   const value = {
     user,
     token,
@@ -205,6 +233,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     logout,
     updateUser,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
