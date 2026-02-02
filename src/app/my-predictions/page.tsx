@@ -18,6 +18,7 @@ import {
   Thermometer,
   Eye,
   Loader2,
+  Sparkles,
 } from 'lucide-react';
 import {
   getMyPredictions,
@@ -27,6 +28,7 @@ import {
   UserPrediction,
   UpdatePredictionData,
 } from '@/lib/api';
+import { fetchCompoundNameBySmiles } from '@/lib/pubchem';
 
 export default function MyPredictionsPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -47,6 +49,8 @@ export default function MyPredictionsPage() {
     notes: '',
     is_favorite: false,
   });
+  const [isSearchingName, setIsSearchingName] = useState(false);
+  const [currentSmiles, setCurrentSmiles] = useState<string>('');
   
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -98,11 +102,32 @@ export default function MyPredictionsPage() {
 
   const handleEdit = (prediction: UserPrediction) => {
     setEditingId(prediction.id);
+    setCurrentSmiles(prediction.smiles);
     setEditForm({
       compound_name: prediction.compound_name || '',
       notes: prediction.notes || '',
       is_favorite: prediction.is_favorite,
     });
+  };
+
+  const handleSearchCompoundName = async () => {
+    if (!currentSmiles) return;
+    
+    setIsSearchingName(true);
+    try {
+      const name = await fetchCompoundNameBySmiles(currentSmiles);
+      if (name) {
+        setEditForm({ ...editForm, compound_name: name });
+      } else {
+        setError('No se encontró el nombre del compuesto en PubChem');
+        setTimeout(() => setError(null), 3000);
+      }
+    } catch (err: any) {
+      setError('Error al buscar nombre del compuesto');
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setIsSearchingName(false);
+    }
   };
 
   const handleSaveEdit = async (predictionId: string) => {
@@ -293,15 +318,33 @@ export default function MyPredictionsPage() {
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             Nombre del Compuesto
                           </label>
-                          <input
-                            type="text"
-                            value={editForm.compound_name}
-                            onChange={(e) =>
-                              setEditForm({ ...editForm, compound_name: e.target.value })
-                            }
-                            className="w-full px-3 py-2 bg-white border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-500"
-                            placeholder="Ej: Aspirina, Etanol..."
-                          />
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={editForm.compound_name}
+                              onChange={(e) =>
+                                setEditForm({ ...editForm, compound_name: e.target.value })
+                              }
+                              className="flex-1 px-3 py-2 bg-white border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-500"
+                              placeholder="Ej: Aspirina, Etanol..."
+                            />
+                            <button
+                              type="button"
+                              onClick={handleSearchCompoundName}
+                              disabled={isSearchingName}
+                              className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+                              title="Buscar nombre automáticamente en PubChem"
+                            >
+                              {isSearchingName ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Sparkles className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Click en ✨ para buscar automáticamente en PubChem
+                          </p>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -354,10 +397,22 @@ export default function MyPredictionsPage() {
                       <div>
                         <div className="flex justify-between items-start mb-4">
                           <div className="flex-1">
-                            {prediction.compound_name && (
+                            {prediction.compound_name ? (
                               <h3 className="text-lg font-semibold text-gray-900 mb-1">
                                 {prediction.compound_name}
                               </h3>
+                            ) : (
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="text-base font-medium text-gray-500 italic">
+                                  Sin nombre asignado
+                                </h3>
+                                <button
+                                  onClick={() => handleEdit(prediction)}
+                                  className="text-xs text-blue-600 hover:text-blue-800 underline"
+                                >
+                                  Agregar nombre
+                                </button>
+                              </div>
                             )}
                             <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                               <Calendar className="h-4 w-4" />

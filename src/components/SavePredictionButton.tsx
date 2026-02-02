@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Save, Loader2, Check, X, Star } from 'lucide-react';
+import { Save, Loader2, Check, X, Star, Sparkles } from 'lucide-react';
 import { savePrediction, SavePredictionData } from '@/lib/api';
+import { fetchCompoundNameBySmiles } from '@/lib/pubchem';
 
 interface SavePredictionButtonProps {
   smiles: string;
@@ -21,12 +22,31 @@ export default function SavePredictionButton({
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSearchingName, setIsSearchingName] = useState(false);
 
   const [formData, setFormData] = useState({
     compound_name: defaultCompoundName,
     notes: '',
     is_favorite: false,
   });
+
+  const handleSearchCompoundName = async () => {
+    setIsSearchingName(true);
+    setError(null);
+    
+    try {
+      const name = await fetchCompoundNameBySmiles(smiles);
+      if (name) {
+        setFormData({ ...formData, compound_name: name });
+      } else {
+        setError('No se encontró el nombre del compuesto en PubChem');
+      }
+    } catch (err: any) {
+      setError('Error al buscar nombre del compuesto');
+    } finally {
+      setIsSearchingName(false);
+    }
+  };
 
   if (!user) {
     return null; // No mostrar si no está autenticado
@@ -122,15 +142,34 @@ export default function SavePredictionButton({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Nombre del Compuesto (opcional)
               </label>
-              <input
-                type="text"
-                value={formData.compound_name}
-                onChange={(e) =>
-                  setFormData({ ...formData, compound_name: e.target.value })
-                }
-                placeholder="Ej: Aspirina, Etanol..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={formData.compound_name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, compound_name: e.target.value })
+                  }
+                  placeholder="Ej: Aspirina, Etanol..."
+                  className="flex-1 px-3 py-2 bg-white border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleSearchCompoundName}
+                  disabled={isSearchingName}
+                  className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+                  title="Buscar nombre automáticamente en PubChem"
+                >
+                  {isSearchingName ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  {isSearchingName ? 'Buscando...' : 'Auto'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Click en "Auto" para buscar el nombre automáticamente en PubChem
+              </p>
             </div>
 
             <div>
