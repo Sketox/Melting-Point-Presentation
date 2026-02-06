@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Search, 
-  Loader2, 
-  WifiOff, 
+import {
+  Search,
+  Loader2,
+  WifiOff,
   RefreshCw,
   Thermometer,
   ArrowRight,
@@ -22,42 +22,59 @@ import {
   CheckCircle,
   XCircle,
   Info,
+  Download,
+  Database,
+  FlaskConical,
+  User,
 } from 'lucide-react';
-import { 
-  predictAll, 
-  predictById, 
-  checkHealth, 
-  getPredictionsRange,
+import {
+  getAllData,
+  predictById,
+  checkHealth,
   getCompounds,
   createCompound,
   deleteCompound,
   validateSmiles,
-  Prediction,
+  getCompoundName,
+  DataItem,
   Compound,
   kelvinToCelsius,
   MODEL_MAE,
+  SOURCE_COLORS,
 } from '@/lib/api';
 
-type SortField = 'id' | 'Tm_pred';
+type SortField = 'id' | 'Tm_pred' | 'source';
 type SortDirection = 'asc' | 'desc';
+type SourceFilter = 'all' | 'train' | 'test' | 'user';
+
+// Badge component for source
+const SourceBadge = ({ source }: { source: 'train' | 'test' | 'user' }) => {
+  const config = {
+    train: { label: 'Real', icon: Database, color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+    test: { label: 'Predicción', icon: FlaskConical, color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+    user: { label: 'Usuario', icon: User, color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
+  };
+  const { label, icon: Icon, color } = config[source];
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border ${color}`}>
+      <Icon className="w-3 h-3" />
+      {label}
+    </span>
+  );
+};
 
 export default function PredictionsPage() {
-  const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [allData, setAllData] = useState<DataItem[]>([]);
   const [compounds, setCompounds] = useState<Compound[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  
+
   const [searchId, setSearchId] = useState('');
-  const [searchResult, setSearchResult] = useState<Prediction | null>(null);
+  const [searchResult, setSearchResult] = useState<DataItem | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  
-  const [minTm, setMinTm] = useState<number>(100);
-  const [maxTm, setMaxTm] = useState<number>(600);
-  const [isFilteringRange, setIsFilteringRange] = useState(false);
-  const [rangeFilterActive, setRangeFilterActive] = useState(false);
-  
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [newSmiles, setNewSmiles] = useState('');
   const [newName, setNewName] = useState('');
@@ -71,36 +88,32 @@ export default function PredictionsPage() {
     atoms: number | null;
     weight: number | null;
   } | null>(null);
-  
+  const [detectedName, setDetectedName] = useState<string | null>(null);
+
   const [tableSearch, setTableSearch] = useState('');
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [sortField, setSortField] = useState<SortField>('id');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [currentPage, setCurrentPage] = useState(1);
-  const [copiedId, setCopiedId] = useState<number | null>(null);
-  const itemsPerPage = 15;
+  const [copiedId, setCopiedId] = useState<string | number | null>(null);
+  const itemsPerPage = 20;
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       await checkHealth();
       setIsConnected(true);
-      
-      const predsData = await predictAll();
-      setPredictions(predsData);
-      
+
+      const data = await getAllData();
+      setAllData(data);
+
       try {
         const compoundsResponse = await getCompounds();
         setCompounds(compoundsResponse.compounds || []);
       } catch {
         setCompounds([]);
-      }
-      
-      if (predsData.length > 0) {
-        const temps = predsData.map(p => p.Tm_pred);
-        setMinTm(Math.floor(Math.min(...temps)));
-        setMaxTm(Math.ceil(Math.max(...temps)));
       }
     } catch {
       setError('No se pudo conectar al backend');
@@ -114,9 +127,11 @@ export default function PredictionsPage() {
     loadData();
   }, [loadData]);
 
+  // SMILES validation with debounce
   useEffect(() => {
     if (!newSmiles.trim()) {
       setSmilesValidation(null);
+      setDetectedName(null);
       return;
     }
 
@@ -131,6 +146,18 @@ export default function PredictionsPage() {
           atoms: result.num_atoms,
           weight: result.molecular_weight,
         });
+
+        // Try to get compound name from PubChem
+        if (result.valid && result.canonical_smiles) {
+          try {
+            const nameResult = await getCompoundName(result.canonical_smiles);
+            if (nameResult.name !== 'Unknown') {
+              setDetectedName(nameResult.name);
+            }
+          } catch {
+            setDetectedName(null);
+          }
+        }
       } catch {
         setSmilesValidation({
           valid: false,
@@ -154,46 +181,26 @@ export default function PredictionsPage() {
       setSearchResult(null);
       return;
     }
-    
+
     setIsSearching(true);
     setSearchError(null);
-    
+
+    // Search in local data first
+    const found = allData.find(item => item.id === id);
+    if (found) {
+      setSearchResult(found);
+      setIsSearching(false);
+      return;
+    }
+
     try {
       const data = await predictById(id);
-      setSearchResult(data);
+      setSearchResult({ id: data.id, smiles: data.smiles || '', Tm_pred: data.Tm_pred, source: 'test' });
     } catch (err) {
       setSearchError(err instanceof Error ? err.message : 'Molécula no encontrada');
       setSearchResult(null);
     } finally {
       setIsSearching(false);
-    }
-  };
-
-  const handleRangeFilter = async () => {
-    setIsFilteringRange(true);
-    try {
-      const response = await getPredictionsRange(minTm, maxTm);
-      setPredictions(response.predictions);
-      setRangeFilterActive(true);
-      setCurrentPage(1);
-    } catch (err) {
-      console.error('Error filtering:', err);
-    } finally {
-      setIsFilteringRange(false);
-    }
-  };
-
-  const clearRangeFilter = async () => {
-    setIsFilteringRange(true);
-    try {
-      const all = await predictAll();
-      setPredictions(all);
-      setRangeFilterActive(false);
-      setCurrentPage(1);
-    } catch (err) {
-      console.error('Error:', err);
-    } finally {
-      setIsFilteringRange(false);
     }
   };
 
@@ -207,16 +214,20 @@ export default function PredictionsPage() {
       setAddError(`SMILES inválido: ${smilesValidation.error}`);
       return;
     }
-    
+
     setIsAdding(true);
     setAddError(null);
-    
+
     try {
       const newCompound = await createCompound(newSmiles, newName);
       setCompounds(prev => [...prev, newCompound]);
+      // Refresh data to include new compound
+      const data = await getAllData();
+      setAllData(data);
       setNewSmiles('');
       setNewName('');
       setSmilesValidation(null);
+      setDetectedName(null);
       setShowAddForm(false);
     } catch (err) {
       setAddError(err instanceof Error ? err.message : 'Error al agregar');
@@ -229,26 +240,45 @@ export default function PredictionsPage() {
     try {
       await deleteCompound(id);
       setCompounds(prev => prev.filter(c => c.id !== id));
+      setAllData(prev => prev.filter(item => item.id !== id));
     } catch (err) {
       console.error('Error deleting:', err);
     }
   };
 
   const filteredAndSorted = useMemo(() => {
-    let result = predictions.filter(p => 
-      p.id.toString().includes(tableSearch) ||
-      p.Tm_pred.toFixed(2).includes(tableSearch)
-    );
+    let result = allData;
 
-    result.sort((a, b) => {
+    // Filter by source
+    if (sourceFilter !== 'all') {
+      result = result.filter(item => item.source === sourceFilter);
+    }
+
+    // Filter by search
+    if (tableSearch.trim()) {
+      const search = tableSearch.toLowerCase();
+      result = result.filter(item =>
+        item.id.toString().includes(search) ||
+        item.smiles.toLowerCase().includes(search) ||
+        item.Tm_pred.toFixed(2).includes(search)
+      );
+    }
+
+    // Sort
+    result = [...result].sort((a, b) => {
       let comparison = 0;
-      if (sortField === 'id') comparison = a.id - b.id;
-      else if (sortField === 'Tm_pred') comparison = a.Tm_pred - b.Tm_pred;
+      if (sortField === 'id') {
+        comparison = String(a.id).localeCompare(String(b.id), undefined, { numeric: true });
+      } else if (sortField === 'Tm_pred') {
+        comparison = a.Tm_pred - b.Tm_pred;
+      } else if (sortField === 'source') {
+        comparison = a.source.localeCompare(b.source);
+      }
       return sortDirection === 'asc' ? comparison : -comparison;
     });
 
     return result;
-  }, [predictions, tableSearch, sortField, sortDirection]);
+  }, [allData, tableSearch, sourceFilter, sortField, sortDirection]);
 
   const totalPages = Math.ceil(filteredAndSorted.length / itemsPerPage);
   const paginatedData = filteredAndSorted.slice(
@@ -265,25 +295,57 @@ export default function PredictionsPage() {
     }
   };
 
-  const copyToClipboard = async (text: string, id: number) => {
+  const copyToClipboard = async (text: string, id: string | number) => {
     await navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const exportToCSV = () => {
+    const headers = ['ID', 'Nombre', 'SMILES', 'Tm (K)', 'Tm (°C)', 'Fuente'];
+    const rows = filteredAndSorted.map(item => {
+      const name = item.source === 'user' ? (compounds.find(c => c.id === item.id)?.name || '') : '';
+      return [
+        item.id,
+        `"${name}"`,
+        `"${item.smiles}"`,
+        item.Tm_pred.toFixed(2),
+        kelvinToCelsius(item.Tm_pred).toFixed(2),
+        item.source
+      ];
+    });
+
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'melting_points_export.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ArrowUpDown className="w-4 h-4 opacity-40" />;
-    return sortDirection === 'asc' 
+    return sortDirection === 'asc'
       ? <ChevronUp className="w-4 h-4 text-claude-orange" />
       : <ChevronDown className="w-4 h-4 text-claude-orange" />;
   };
+
+  // Stats by source
+  const stats = useMemo(() => {
+    const train = allData.filter(d => d.source === 'train').length;
+    const test = allData.filter(d => d.source === 'test').length;
+    const user = allData.filter(d => d.source === 'user').length;
+    return { train, test, user, total: train + test + user };
+  }, [allData]);
 
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="min-h-[60vh] flex flex-col items-center justify-center">
           <Loader2 className="w-12 h-12 text-claude-orange animate-spin mb-4" />
-          <p className="text-claude-text-secondary">Cargando predicciones...</p>
+          <p className="text-claude-text-secondary">Cargando datos...</p>
         </div>
       </div>
     );
@@ -310,7 +372,36 @@ export default function PredictionsPage() {
       <div className="space-y-6">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-3xl font-bold text-claude-text">Predicciones</h1>
-          <p className="text-claude-text-secondary mt-1">Explorar y buscar predicciones de punto de fusión</p>
+          <p className="text-claude-text-secondary mt-1">Sistema de toma de decisiones para puntos de fusión</p>
+        </motion.div>
+
+        {/* Stats Cards */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="glass rounded-xl p-4 border border-claude-border">
+            <p className="text-claude-text-muted text-sm">Total</p>
+            <p className="text-2xl font-bold text-claude-text">{stats.total.toLocaleString()}</p>
+          </div>
+          <div className="glass rounded-xl p-4 border border-emerald-500/30">
+            <div className="flex items-center gap-2">
+              <Database className="w-4 h-4 text-emerald-400" />
+              <p className="text-emerald-400 text-sm">Train (Real)</p>
+            </div>
+            <p className="text-2xl font-bold text-emerald-400">{stats.train.toLocaleString()}</p>
+          </div>
+          <div className="glass rounded-xl p-4 border border-blue-500/30">
+            <div className="flex items-center gap-2">
+              <FlaskConical className="w-4 h-4 text-blue-400" />
+              <p className="text-blue-400 text-sm">Test (Predicción)</p>
+            </div>
+            <p className="text-2xl font-bold text-blue-400">{stats.test.toLocaleString()}</p>
+          </div>
+          <div className="glass rounded-xl p-4 border border-orange-500/30">
+            <div className="flex items-center gap-2">
+              <User className="w-4 h-4 text-orange-400" />
+              <p className="text-orange-400 text-sm">Usuario</p>
+            </div>
+            <p className="text-2xl font-bold text-orange-400">{stats.user.toLocaleString()}</p>
+          </div>
         </motion.div>
 
         {/* Search by ID */}
@@ -319,7 +410,7 @@ export default function PredictionsPage() {
             <div className="p-2 rounded-xl bg-claude-orange/20 text-claude-orange"><Search className="w-5 h-5" /></div>
             <h2 className="text-lg font-bold text-claude-text">Buscar por ID</h2>
           </div>
-          
+
           <div className="flex gap-3 mb-4">
             <input type="number" min="1" placeholder="ID de molécula (ej: 42)" value={searchId} onChange={(e) => setSearchId(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSearchById()} className="flex-1 px-4 py-2.5 bg-claude-bg border border-claude-border rounded-xl text-claude-text placeholder:text-claude-text-muted focus:border-claude-orange transition-all font-mono" />
             <button onClick={handleSearchById} disabled={isSearching || !searchId} className="btn-primary px-6 py-2.5 rounded-xl font-semibold text-white flex items-center gap-2 disabled:opacity-50">
@@ -335,15 +426,25 @@ export default function PredictionsPage() {
             )}
             {searchResult && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 rounded-xl bg-gradient-to-r from-claude-orange/20 to-claude-orange/5 border border-claude-orange/30">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-4">
                   <div>
-                    <p className="text-claude-text-muted text-sm">Molécula #{searchResult.id}</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-claude-text-muted text-sm">ID #{searchResult.id}</p>
+                      <SourceBadge source={searchResult.source} />
+                    </div>
                     <p className="text-2xl font-bold text-claude-orange">{searchResult.Tm_pred.toFixed(2)} K</p>
                     <p className="text-claude-text-secondary">{kelvinToCelsius(searchResult.Tm_pred).toFixed(1)}°C</p>
+                    {searchResult.smiles && (
+                      <code className="text-xs text-claude-text-muted font-mono block mt-2 max-w-md truncate">{searchResult.smiles}</code>
+                    )}
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-claude-text-muted">Incertidumbre</p>
-                    <p className="text-claude-orange font-medium">±{MODEL_MAE.toFixed(1)} K</p>
+                    <p className="text-xs text-claude-text-muted">
+                      {searchResult.source === 'train' ? 'Valor real' : 'Incertidumbre'}
+                    </p>
+                    <p className="text-claude-orange font-medium">
+                      {searchResult.source === 'train' ? 'Medido' : `±${MODEL_MAE.toFixed(1)} K`}
+                    </p>
                   </div>
                 </div>
               </motion.div>
@@ -351,52 +452,33 @@ export default function PredictionsPage() {
           </AnimatePresence>
         </motion.div>
 
-        {/* Range Filter */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass rounded-2xl p-6 border border-claude-border">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400"><Filter className="w-5 h-5" /></div>
-            <h2 className="text-lg font-bold text-claude-text">Filtrar por Rango</h2>
-            {rangeFilterActive && <span className="ml-auto px-2 py-1 text-xs rounded-full bg-blue-500/20 text-blue-400">Filtro activo</span>}
-          </div>
-          
-          <div className="flex flex-wrap gap-4 items-end">
-            <div>
-              <label className="text-claude-text-muted text-sm mb-1 block">Mín (K)</label>
-              <input type="number" value={minTm} onChange={(e) => setMinTm(Number(e.target.value))} className="w-28 px-3 py-2 bg-claude-bg border border-claude-border rounded-xl text-claude-text focus:border-claude-orange transition-all" />
-            </div>
-            <div>
-              <label className="text-claude-text-muted text-sm mb-1 block">Máx (K)</label>
-              <input type="number" value={maxTm} onChange={(e) => setMaxTm(Number(e.target.value))} className="w-28 px-3 py-2 bg-claude-bg border border-claude-border rounded-xl text-claude-text focus:border-claude-orange transition-all" />
-            </div>
-            <button onClick={handleRangeFilter} disabled={isFilteringRange} className="px-4 py-2 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-all disabled:opacity-50 flex items-center gap-2">
-              {isFilteringRange ? <Loader2 className="w-4 h-4 animate-spin" /> : <Filter className="w-4 h-4" />}Aplicar
-            </button>
-            {rangeFilterActive && <button onClick={clearRangeFilter} className="px-4 py-2 rounded-xl border border-claude-border text-claude-text-secondary hover:text-claude-text transition-all">Limpiar</button>}
-          </div>
-        </motion.div>
-
-        {/* User Compounds */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass rounded-2xl p-6 border border-emerald-500/30">
+        {/* Add Compound */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass rounded-2xl p-6 border border-orange-500/30">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400"><Beaker className="w-5 h-5" /></div>
+              <div className="p-2 rounded-xl bg-orange-500/20 text-orange-400"><Beaker className="w-5 h-5" /></div>
               <div>
-                <h2 className="text-lg font-bold text-claude-text">Mis Compuestos</h2>
-                <p className="text-claude-text-muted text-xs">{compounds.length} compuestos agregados</p>
+                <h2 className="text-lg font-bold text-claude-text">Agregar Compuesto</h2>
+                <p className="text-claude-text-muted text-xs">{compounds.length} compuestos de usuario</p>
               </div>
             </div>
-            <button onClick={() => setShowAddForm(!showAddForm)} className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-semibold hover:bg-emerald-500/20 transition-all flex items-center gap-2">
-              <Plus className="w-4 h-4" />Agregar
+            <button onClick={() => setShowAddForm(!showAddForm)} className="px-4 py-2 rounded-xl bg-orange-500/10 border border-orange-500/30 text-orange-400 font-semibold hover:bg-orange-500/20 transition-all flex items-center gap-2">
+              <Plus className="w-4 h-4" />{showAddForm ? 'Cerrar' : 'Nuevo'}
             </button>
           </div>
 
           <AnimatePresence>
             {showAddForm && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-4 p-4 rounded-xl bg-claude-bg border border-claude-border overflow-hidden">
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="p-4 rounded-xl bg-claude-bg border border-claude-border overflow-hidden">
                 <div className="grid sm:grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="text-claude-text-muted text-sm mb-1 block">Nombre</label>
-                    <input type="text" placeholder="Ej: Aspirina" value={newName} onChange={(e) => setNewName(e.target.value)} className="w-full px-4 py-2.5 bg-claude-bg-secondary border border-claude-border rounded-xl text-claude-text placeholder:text-claude-text-muted focus:border-emerald-400 transition-all" />
+                    <input type="text" placeholder="Ej: Aspirina" value={newName} onChange={(e) => setNewName(e.target.value)} className="w-full px-4 py-2.5 bg-claude-bg-secondary border border-claude-border rounded-xl text-claude-text placeholder:text-claude-text-muted focus:border-orange-400 transition-all" />
+                    {detectedName && !newName && (
+                      <button onClick={() => setNewName(detectedName)} className="text-xs text-orange-400 mt-1 hover:underline">
+                        Usar nombre detectado: {detectedName}
+                      </button>
+                    )}
                   </div>
                   <div>
                     <label className="text-claude-text-muted text-sm mb-1 block">SMILES {isValidatingSmiles && <Loader2 className="w-3 h-3 inline ml-2 animate-spin" />}</label>
@@ -419,34 +501,35 @@ export default function PredictionsPage() {
                     )}
                   </div>
                 </div>
-                
+
                 {addError && <p className="text-red-400 text-sm mb-3">{addError}</p>}
-                
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-claude-orange/10 border border-claude-orange/20 mb-4">
-                  <Info className="w-4 h-4 text-claude-orange flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-claude-text-secondary">Incertidumbre: <span className="text-claude-orange font-semibold">±{MODEL_MAE.toFixed(1)} K</span></p>
+
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 mb-4">
+                  <Info className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-claude-text-secondary">Incertidumbre del modelo: <span className="text-orange-400 font-semibold">±{MODEL_MAE.toFixed(1)} K</span> (MAE combinado)</p>
                 </div>
-                
+
                 <div className="flex gap-3">
-                  <button onClick={handleAddCompound} disabled={isAdding || (smilesValidation !== null && !smilesValidation.valid)} className="px-4 py-2 rounded-xl bg-emerald-500 text-white font-semibold hover:bg-emerald-600 disabled:opacity-50 flex items-center gap-2">
+                  <button onClick={handleAddCompound} disabled={isAdding || (smilesValidation !== null && !smilesValidation.valid)} className="px-4 py-2 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 disabled:opacity-50 flex items-center gap-2">
                     {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}Guardar
                   </button>
-                  <button onClick={() => { setShowAddForm(false); setAddError(null); setNewSmiles(''); setNewName(''); setSmilesValidation(null); }} className="px-4 py-2 rounded-xl border border-claude-border text-claude-text-secondary hover:text-claude-text">Cancelar</button>
+                  <button onClick={() => { setShowAddForm(false); setAddError(null); setNewSmiles(''); setNewName(''); setSmilesValidation(null); setDetectedName(null); }} className="px-4 py-2 rounded-xl border border-claude-border text-claude-text-secondary hover:text-claude-text">Cancelar</button>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
+          {/* User compounds list */}
           {compounds.length > 0 && (
-            <div className="space-y-2">
+            <div className="space-y-2 mt-4">
               {compounds.map((compound) => (
                 <div key={compound.id} className="flex items-center justify-between p-3 rounded-xl bg-claude-bg border border-claude-border">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 flex-wrap">
                       <span className="text-xs text-claude-text-muted font-mono">{compound.id}</span>
                       <span className="font-semibold text-claude-text">{compound.name}</span>
-                      <span className="text-claude-orange font-bold">{compound.Tm_pred.toFixed(2)} K</span>
-                      <span className="text-xs px-2 py-0.5 rounded bg-claude-orange/10 text-claude-orange">{compound.uncertainty || `±${MODEL_MAE.toFixed(0)} K`}</span>
+                      <span className="text-orange-400 font-bold">{compound.Tm_pred.toFixed(2)} K</span>
+                      <SourceBadge source="user" />
                     </div>
                     <code className="text-xs text-claude-text-muted font-mono truncate block mt-1">{compound.smiles}</code>
                   </div>
@@ -455,20 +538,48 @@ export default function PredictionsPage() {
               ))}
             </div>
           )}
-          {compounds.length === 0 && !showAddForm && <p className="text-claude-text-muted text-sm text-center py-4">No hay compuestos agregados. Haz clic en "Agregar" para crear uno.</p>}
         </motion.div>
 
-        {/* Predictions Table */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="glass rounded-2xl border border-claude-border overflow-hidden">
+        {/* Data Table */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass rounded-2xl border border-claude-border overflow-hidden">
           <div className="p-6 border-b border-claude-border">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-bold text-claude-text flex items-center gap-2"><Beaker className="w-5 h-5 text-claude-orange" />Todas las Predicciones</h2>
-                <p className="text-claude-text-secondary text-sm mt-1">{filteredAndSorted.length.toLocaleString()} moléculas</p>
+                <h2 className="text-xl font-bold text-claude-text flex items-center gap-2"><Beaker className="w-5 h-5 text-claude-orange" />Todos los Datos</h2>
+                <p className="text-claude-text-secondary text-sm mt-1">{filteredAndSorted.length.toLocaleString()} compuestos</p>
               </div>
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-claude-text-muted" />
-                <input type="text" placeholder="Filtrar por ID o Tm..." value={tableSearch} onChange={(e) => { setTableSearch(e.target.value); setCurrentPage(1); }} className="w-full sm:w-64 pl-10 pr-4 py-2.5 bg-claude-bg border border-claude-border rounded-xl text-claude-text placeholder:text-claude-text-muted focus:border-claude-orange transition-all" />
+
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Source filter */}
+                <div className="flex rounded-xl overflow-hidden border border-claude-border">
+                  {(['all', 'train', 'test', 'user'] as SourceFilter[]).map((filter) => (
+                    <button
+                      key={filter}
+                      onClick={() => { setSourceFilter(filter); setCurrentPage(1); }}
+                      className={`px-3 py-1.5 text-sm transition-colors ${
+                        sourceFilter === filter
+                          ? filter === 'train' ? 'bg-emerald-500/20 text-emerald-400'
+                            : filter === 'test' ? 'bg-blue-500/20 text-blue-400'
+                              : filter === 'user' ? 'bg-orange-500/20 text-orange-400'
+                                : 'bg-claude-orange/20 text-claude-orange'
+                          : 'text-claude-text-secondary hover:text-claude-text hover:bg-claude-bg-secondary'
+                      }`}
+                    >
+                      {filter === 'all' ? 'Todos' : filter === 'train' ? 'Train' : filter === 'test' ? 'Test' : 'User'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Search */}
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-claude-text-muted" />
+                  <input type="text" placeholder="Filtrar..." value={tableSearch} onChange={(e) => { setTableSearch(e.target.value); setCurrentPage(1); }} className="w-40 pl-9 pr-3 py-1.5 bg-claude-bg border border-claude-border rounded-xl text-sm text-claude-text placeholder:text-claude-text-muted focus:border-claude-orange transition-all" />
+                </div>
+
+                {/* Export */}
+                <button onClick={exportToCSV} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-claude-border text-claude-text-secondary hover:text-claude-orange hover:border-claude-orange transition-all text-sm">
+                  <Download className="w-4 h-4" />CSV
+                </button>
               </div>
             </div>
           </div>
@@ -476,31 +587,44 @@ export default function PredictionsPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-claude-border bg-claude-orange/5">
-                  <th className="px-6 py-4 text-left cursor-pointer hover:bg-claude-orange/10" onClick={() => handleSort('id')}>
+                <tr className="border-b border-claude-border bg-claude-bg-secondary/50">
+                  <th className="px-4 py-3 text-left cursor-pointer hover:bg-claude-orange/10" onClick={() => handleSort('id')}>
                     <div className="flex items-center gap-2 text-xs font-semibold text-claude-text-secondary uppercase">ID <SortIcon field="id" /></div>
                   </th>
-                  <th className="px-6 py-4 text-left cursor-pointer hover:bg-claude-orange/10" onClick={() => handleSort('Tm_pred')}>
-                    <div className="flex items-center gap-2 text-xs font-semibold text-claude-text-secondary uppercase"><Thermometer className="w-4 h-4" />Punto de Fusión <SortIcon field="Tm_pred" /></div>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-claude-text-secondary uppercase">Nombre</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-claude-text-secondary uppercase">SMILES</th>
+                  <th className="px-4 py-3 text-left cursor-pointer hover:bg-claude-orange/10" onClick={() => handleSort('Tm_pred')}>
+                    <div className="flex items-center gap-2 text-xs font-semibold text-claude-text-secondary uppercase"><Thermometer className="w-4 h-4" />Tm <SortIcon field="Tm_pred" /></div>
                   </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-claude-text-secondary uppercase">Acciones</th>
+                  <th className="px-4 py-3 text-left cursor-pointer hover:bg-claude-orange/10" onClick={() => handleSort('source')}>
+                    <div className="flex items-center gap-2 text-xs font-semibold text-claude-text-secondary uppercase">Fuente <SortIcon field="source" /></div>
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-claude-text-secondary uppercase">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 <AnimatePresence mode="popLayout">
-                  {paginatedData.map((prediction, index) => (
-                    <motion.tr key={prediction.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.1, delay: index * 0.01 }} className="border-b border-claude-border/50 hover:bg-claude-orange/5">
-                      <td className="px-6 py-4"><span className="px-3 py-1.5 rounded-lg bg-claude-bg-tertiary text-claude-text font-mono text-sm font-bold">{prediction.id}</span></td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xl font-bold text-claude-orange">{prediction.Tm_pred.toFixed(2)} K</span>
-                          <span className="text-claude-text-muted text-sm">({kelvinToCelsius(prediction.Tm_pred).toFixed(1)}°C)</span>
+                  {paginatedData.map((item, index) => (
+                    <motion.tr key={`${item.source}-${item.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.1, delay: index * 0.01 }} className="border-b border-claude-border/50 hover:bg-claude-orange/5">
+                      <td className="px-4 py-3"><span className="px-2 py-1 rounded-lg bg-claude-bg-tertiary text-claude-text font-mono text-sm">{item.id}</span></td>
+                      <td className="px-4 py-3">
+                        {item.source === 'user' ? (
+                          <span className="text-claude-text text-sm">{compounds.find(c => c.id === item.id)?.name || '-'}</span>
+                        ) : (
+                          <span className="text-claude-text-muted text-xs">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3"><code className="text-xs text-claude-text-muted font-mono truncate block max-w-[180px]" title={item.smiles}>{item.smiles || '-'}</code></td>
+                      <td className="px-4 py-3">
+                        <div>
+                          <span className="font-bold" style={{ color: SOURCE_COLORS[item.source] }}>{item.Tm_pred.toFixed(2)} K</span>
+                          <span className="text-claude-text-muted text-xs ml-2">({kelvinToCelsius(item.Tm_pred).toFixed(1)}°C)</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <button onClick={() => copyToClipboard(`ID: ${prediction.id}, Tm: ${prediction.Tm_pred.toFixed(2)} K`, prediction.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-claude-border hover:border-claude-orange hover:text-claude-orange text-sm text-claude-text-secondary">
-                          {copiedId === prediction.id ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-                          {copiedId === prediction.id ? 'Copiado' : 'Copiar'}
+                      <td className="px-4 py-3"><SourceBadge source={item.source} /></td>
+                      <td className="px-4 py-3 text-center">
+                        <button onClick={() => copyToClipboard(`${item.smiles}\t${item.Tm_pred.toFixed(2)}`, item.id)} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-claude-border hover:border-claude-orange hover:text-claude-orange text-xs text-claude-text-secondary">
+                          {copiedId === item.id ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
                         </button>
                       </td>
                     </motion.tr>
@@ -511,11 +635,13 @@ export default function PredictionsPage() {
           </div>
 
           <div className="p-4 border-t border-claude-border flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-claude-text-secondary text-sm">Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, filteredAndSorted.length)} de {filteredAndSorted.length.toLocaleString()}</p>
+            <p className="text-claude-text-secondary text-sm">Mostrando {Math.min(((currentPage - 1) * itemsPerPage) + 1, filteredAndSorted.length)} a {Math.min(currentPage * itemsPerPage, filteredAndSorted.length)} de {filteredAndSorted.length.toLocaleString()}</p>
             <div className="flex items-center gap-2">
-              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1.5 rounded-lg border border-claude-border text-claude-text-secondary hover:border-claude-orange disabled:opacity-40 text-sm">Anterior</button>
-              <span className="px-3 py-1.5 text-claude-text-secondary text-sm">{currentPage} / {totalPages}</span>
-              <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1.5 rounded-lg border border-claude-border text-claude-text-secondary hover:border-claude-orange disabled:opacity-40 text-sm">Siguiente</button>
+              <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="px-2 py-1 rounded-lg border border-claude-border text-claude-text-secondary hover:border-claude-orange disabled:opacity-40 text-sm">«</button>
+              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 rounded-lg border border-claude-border text-claude-text-secondary hover:border-claude-orange disabled:opacity-40 text-sm">Anterior</button>
+              <span className="px-3 py-1 text-claude-text-secondary text-sm">{currentPage} / {totalPages || 1}</span>
+              <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0} className="px-3 py-1 rounded-lg border border-claude-border text-claude-text-secondary hover:border-claude-orange disabled:opacity-40 text-sm">Siguiente</button>
+              <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages || totalPages === 0} className="px-2 py-1 rounded-lg border border-claude-border text-claude-text-secondary hover:border-claude-orange disabled:opacity-40 text-sm">»</button>
             </div>
           </div>
         </motion.div>

@@ -3,20 +3,20 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { 
-  Sparkles, 
-  ArrowRight, 
-  Loader2, 
-  WifiOff, 
+import {
+  Sparkles,
+  ArrowRight,
+  Loader2,
+  WifiOff,
   RefreshCw,
   Thermometer,
   Beaker,
   BarChart3,
-  Code,
   Brain,
   Zap,
   ChevronRight,
-  Target
+  Target,
+  Info
 } from 'lucide-react';
 import { checkHealth, getStatistics, Statistics } from '@/lib/api';
 
@@ -106,22 +106,22 @@ export default function HomePage() {
     },
     {
       icon: Brain,
-      title: 'ChemProp D-MPNN',
-      description: 'Red neuronal de grafos con MAE de 28.85 K entrenada con 5-fold CV',
+      title: 'Modelo Híbrido',
+      description: 'ChemProp D-MPNN + Ensemble (XGB+LGB) con MAE de 22.80 K en Kaggle',
       color: 'from-purple-500/20 to-purple-600/10',
       iconColor: 'text-purple-400'
     },
     {
       icon: BarChart3,
       title: 'Visualizaciones',
-      description: 'Gráficos interactivos de distribución, grupos funcionales y análisis',
+      description: 'Gráficos de distribución, grupos funcionales, tamaño molecular y más',
       color: 'from-emerald-500/20 to-emerald-600/10',
       iconColor: 'text-emerald-400'
     },
     {
-      icon: Code,
-      title: 'API REST',
-      description: '14 endpoints documentados con Swagger UI para integración fácil',
+      icon: Zap,
+      title: 'Toma de Decisiones',
+      description: 'Compare 2,662 datos reales con 666 predicciones y sus propios compuestos',
       color: 'from-claude-orange/20 to-claude-orange/10',
       iconColor: 'text-claude-orange'
     }
@@ -131,7 +131,7 @@ export default function HomePage() {
     { href: '/predictions', label: 'Ver Predicciones', icon: Thermometer },
     { href: '/analytics', label: 'Analytics', icon: BarChart3 },
     { href: '/model', label: 'Sobre el Modelo', icon: Brain },
-    { href: '/api-docs', label: 'API Docs', icon: Code },
+    { href: '/about', label: 'Acerca de', icon: Info },
   ];
 
   return (
@@ -174,10 +174,10 @@ export default function HomePage() {
 
             {/* Subtitle */}
             <p className="text-lg sm:text-xl text-claude-text-secondary mb-8 leading-relaxed">
-              Sistema avanzado de Machine Learning para predecir puntos de fusión 
-              a partir de representaciones moleculares SMILES. 
-              Modelo ChemProp D-MPNN con{' '}
-              <span className="text-claude-orange font-semibold">MAE de 28.85 ± 3.16 K</span>.
+              Sistema de toma de decisiones para predecir puntos de fusión
+              a partir de estructuras moleculares SMILES.
+              Modelo híbrido ChemProp + Ensemble con{' '}
+              <span className="text-claude-orange font-semibold">MAE de 22.80 K</span> validado en Kaggle.
             </p>
 
             {/* CTA Buttons */}
@@ -206,10 +206,10 @@ export default function HomePage() {
             className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto"
           >
             {[
-              { label: 'Moléculas', value: stats?.count?.toLocaleString() || '667' },
-              { label: 'Tm Promedio', value: stats ? `${stats.mean.toFixed(0)} K` : '276 K' },
-              { label: 'Test MAE', value: '28.85 K' },
-              { label: 'Folds CV', value: '5' },
+              { label: 'Train (Real)', value: '2,662' },
+              { label: 'Test (Pred)', value: '666' },
+              { label: 'MAE Kaggle', value: '22.80 K' },
+              { label: 'Modelo', value: 'Híbrido' },
             ].map((stat, index) => (
               <motion.div 
                 key={stat.label} 
@@ -240,10 +240,10 @@ export default function HomePage() {
             </div>
             <div className="flex-1 text-center md:text-left">
               <h3 className="text-xl font-bold text-claude-text mb-2">
-                Modelo Entrenado con ChemProp D-MPNN
+                Modelo Híbrido: ChemProp + Ensemble
               </h3>
               <p className="text-claude-text-secondary">
-                Red neuronal de grafos con 300 dimensiones, 6 capas de profundidad y validación cruzada de 5 folds.
+                20% ChemProp D-MPNN + 80% Ensemble (XGBoost, LightGBM). MAE de 22.80 K en Kaggle.
                 Ejemplo: Agua (SMILES: "O") → <span className="text-claude-orange font-semibold">272.17 K</span> (real: 273.15 K) ✓
               </p>
             </div>
@@ -369,18 +369,18 @@ export default function HomePage() {
               cómo funciona nuestro sistema de Machine Learning con ChemProp.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link 
-                href="/predictions" 
+              <Link
+                href="/predictions"
                 className="btn-primary px-8 py-3 rounded-xl font-semibold text-white flex items-center gap-2"
               >
                 Ver Predicciones
                 <ArrowRight className="w-5 h-5" />
               </Link>
-              <Link 
-                href="/api-docs" 
+              <Link
+                href="/analytics"
                 className="px-8 py-3 rounded-xl font-semibold border border-claude-border text-claude-text hover:border-claude-orange transition-all"
               >
-                Documentación API
+                Explorar Analytics
               </Link>
             </div>
           </motion.div>

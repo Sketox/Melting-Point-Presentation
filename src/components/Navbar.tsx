@@ -4,14 +4,13 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Flame, 
+import {
+  Flame,
   Home,
   BarChart3,
   Table2,
   Brain,
   Info,
-  Code,
   Menu,
   X,
   Github,
@@ -24,7 +23,6 @@ const navItems = [
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/model', label: 'Modelo', icon: Brain },
   { href: '/about', label: 'Acerca de', icon: Info },
-  { href: '/api-docs', label: 'API', icon: Code },
 ];
 
 export default function Navbar() {

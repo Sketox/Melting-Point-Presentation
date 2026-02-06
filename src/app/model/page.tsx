@@ -21,12 +21,12 @@ import {
 import Link from 'next/link';
 
 export default function ModelPage() {
-  // Real metrics from trained model
+  // Real metrics from trained model - Hybrid model
   const modelSpecs = {
-    name: 'ChemProp',
-    type: 'D-MPNN (Directed Message Passing Neural Network)',
-    architecture: 'Graph Neural Network',
-    features: 'Molecular SMILES → Graph',
+    name: 'Modelo Híbrido',
+    type: 'ChemProp D-MPNN + Ensemble (XGB+LGB)',
+    architecture: 'Graph Neural Network + Gradient Boosting',
+    features: 'SMILES → Graph + Morgan FP + MACCS Keys',
     target: 'Punto de Fusión (Tm) en Kelvin',
     folds: 5,
     epochs: 50,
@@ -34,9 +34,14 @@ export default function ModelPage() {
     depth: 6,
     dropout: 0.1,
     batchSize: 32,
+    // Hybrid model composition
+    chempropWeight: 0.20,
+    ensembleWeight: 0.80,
     metrics: {
-      mae: 28.85,
+      mae: 22.80,  // Kaggle test MAE
       maeStd: 3.16,
+      chempropMae: 28.85,
+      ensembleMae: 26.64,
       foldMetrics: [
         { fold: 0, valMae: 29.63, testMae: 26.15, bestEpoch: 30 },
         { fold: 1, valMae: 29.26, testMae: 27.64, bestEpoch: 41 },
@@ -78,10 +83,10 @@ export default function ModelPage() {
     },
     {
       step: 5,
-      title: 'Predicción',
-      description: 'Una red feed-forward (FFN) predice el punto de fusión a partir del vector molecular',
+      title: 'Predicción Híbrida',
+      description: 'ChemProp + Ensemble se combinan (20%/80%) para predecir el punto de fusión final',
       icon: Target,
-      detail: 'FFN → Tm (Kelvin) ± 28.9 K',
+      detail: 'Combinación óptima → Tm (Kelvin) ± 22.8 K',
     },
   ];
 
@@ -133,18 +138,18 @@ export default function ModelPage() {
           </div>
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-claude-text">
-              Modelo de Machine Learning
+              Modelo Híbrido de Machine Learning
             </h1>
             <p className="text-claude-text-secondary">
-              ChemProp - Directed Message Passing Neural Network
+              ChemProp D-MPNN + Ensemble (XGBoost + LightGBM)
             </p>
           </div>
         </div>
         <p className="text-claude-text-secondary max-w-3xl mt-4">
-          Utilizamos <span className="text-purple-400 font-semibold">ChemProp</span>, 
-          una red neuronal de grafos especializada en predicción de propiedades moleculares.
-          El modelo aprende representaciones directamente de la estructura molecular
-          sin necesidad de calcular descriptores químicos manualmente.
+          Utilizamos un <span className="text-purple-400 font-semibold">modelo híbrido</span> que combina
+          ChemProp (red neuronal de grafos) con un ensemble de gradient boosting.
+          Esta combinación logra <span className="text-claude-orange font-semibold">MAE de 22.80 K</span> en
+          el test set de Kaggle, superior a cualquier modelo individual.
         </p>
       </motion.div>
 
@@ -257,10 +262,10 @@ export default function ModelPage() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 className="w-5 h-5 text-claude-text-secondary" />
-              <span className="font-semibold text-claude-text">Métricas Finales del Modelo</span>
+              <span className="font-semibold text-claude-text">Métricas del Modelo Híbrido</span>
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-3 gap-4">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -271,10 +276,10 @@ export default function ModelPage() {
                   {modelSpecs.metrics.mae}
                   <span className="text-lg font-normal text-claude-text-muted ml-1">K</span>
                 </p>
-                <p className="text-claude-text-secondary text-sm mt-1">MAE (Test)</p>
-                <p className="text-claude-text-muted text-xs mt-1">Error Absoluto Medio</p>
+                <p className="text-claude-text-secondary text-sm mt-1">MAE Híbrido (Kaggle)</p>
+                <p className="text-claude-text-muted text-xs mt-1">20% ChemProp + 80% Ensemble</p>
               </motion.div>
-              
+
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -282,11 +287,25 @@ export default function ModelPage() {
                 className="text-center p-6 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 border border-purple-500/30"
               >
                 <p className="text-4xl font-bold text-purple-400">
-                  ±{modelSpecs.metrics.maeStd}
+                  {modelSpecs.metrics.chempropMae}
                   <span className="text-lg font-normal text-claude-text-muted ml-1">K</span>
                 </p>
-                <p className="text-claude-text-secondary text-sm mt-1">Desviación Estándar</p>
-                <p className="text-claude-text-muted text-xs mt-1">Variación entre folds</p>
+                <p className="text-claude-text-secondary text-sm mt-1">MAE ChemProp</p>
+                <p className="text-claude-text-muted text-xs mt-1">Solo D-MPNN</p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6 }}
+                className="text-center p-6 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/30"
+              >
+                <p className="text-4xl font-bold text-emerald-400">
+                  {modelSpecs.metrics.ensembleMae}
+                  <span className="text-lg font-normal text-claude-text-muted ml-1">K</span>
+                </p>
+                <p className="text-claude-text-secondary text-sm mt-1">MAE Ensemble</p>
+                <p className="text-claude-text-muted text-xs mt-1">XGB + LGB</p>
               </motion.div>
             </div>
 
@@ -294,8 +313,8 @@ export default function ModelPage() {
             <div className="mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-claude-text-secondary">
-                Todas las predicciones incluyen una <span className="text-yellow-400 font-semibold">incertidumbre de ±28.9 K</span> basada en el MAE del modelo. 
-                Esto significa que el valor real probablemente está dentro de ese rango.
+                Todas las predicciones incluyen una <span className="text-yellow-400 font-semibold">incertidumbre de ±22.80 K</span> basada en el MAE del modelo híbrido validado en Kaggle.
+                Este es el error esperado en datos nuevos similares al dataset de entrenamiento.
               </p>
             </div>
           </div>

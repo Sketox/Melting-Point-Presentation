@@ -124,6 +124,21 @@ export interface MoleculeSizeResponse {
   note?: string;
 }
 
+// Nuevo tipo para datos completos (train + test + user)
+export interface DataItem {
+  id: number | string;
+  smiles: string;
+  Tm_pred: number;
+  source: 'train' | 'test' | 'user';
+}
+
+// Respuesta del endpoint de nombre de compuesto
+export interface CompoundNameResponse {
+  smiles: string;
+  name: string;
+  source: string;
+}
+
 // ============================================
 // API CLIENT
 // ============================================
@@ -190,6 +205,14 @@ export async function predictAll(): Promise<Prediction[]> {
   return fetchApi<Prediction[]>('/predict-all');
 }
 
+export async function getAllData(): Promise<DataItem[]> {
+  return fetchApi<DataItem[]>('/data-all');
+}
+
+export async function getCompoundName(smiles: string): Promise<CompoundNameResponse> {
+  return fetchApi<CompoundNameResponse>(`/compound-name?smiles=${encodeURIComponent(smiles)}`);
+}
+
 export async function predictById(id: number): Promise<Prediction> {
   return fetchApi<Prediction>('/predict-by-id', {
     method: 'POST',
@@ -251,5 +274,12 @@ export function kelvinToCelsius(kelvin: number): number {
 }
 
 // Constantes del modelo
-export const MODEL_MAE = 28.85;
+export const MODEL_MAE = 22.80;  // MAE combinado (ChemProp + Ensemble)
 export const MODEL_MAE_STD = 3.16;
+
+// Colores para categorías de datos
+export const SOURCE_COLORS = {
+  train: '#4ade80',  // Verde - datos reales
+  test: '#60a5fa',   // Azul - predicciones
+  user: '#f5a623',   // Naranja - usuario
+} as const;

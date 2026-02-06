@@ -26,9 +26,10 @@ export default function AboutPage() {
     name: 'Thermophysical Property: Melting Point',
     platform: 'Kaggle',
     objective: 'Predecir puntos de fusión (Tm) en Kelvin para compuestos orgánicos',
-    dataset: '~9,000 moléculas con estructuras SMILES',
-    metric: 'Root Mean Square Error (RMSE)',
+    dataset: '2,662 train + 666 test moléculas con estructuras SMILES',
+    metric: 'Mean Absolute Error (MAE)',
     link: 'https://www.kaggle.com/competitions/melting-point',
+    result: 'MAE 22.80 K con modelo híbrido',
   };
 
   const whyMatters = [
@@ -57,21 +58,21 @@ export default function AboutPage() {
   const techStack = [
     { name: 'Next.js 14', category: 'Frontend', color: 'bg-white/10' },
     { name: 'FastAPI', category: 'Backend', color: 'bg-emerald-500/20' },
-    { name: 'ChemProp', category: 'ML Model', color: 'bg-purple-500/20' },
-    { name: 'Tailwind CSS', category: 'Styling', color: 'bg-cyan-500/20' },
-    { name: 'Recharts', category: 'Charts', color: 'bg-blue-500/20' },
-    { name: 'Framer Motion', category: 'Animations', color: 'bg-pink-500/20' },
-    { name: 'Python', category: 'Backend', color: 'bg-yellow-500/20' },
-    { name: 'scikit-learn', category: 'ML', color: 'bg-orange-500/20' },
+    { name: 'ChemProp', category: 'D-MPNN', color: 'bg-purple-500/20' },
+    { name: 'XGBoost', category: 'Ensemble', color: 'bg-blue-500/20' },
+    { name: 'LightGBM', category: 'Ensemble', color: 'bg-cyan-500/20' },
+    { name: 'RDKit', category: 'Química', color: 'bg-pink-500/20' },
+    { name: 'Tailwind CSS', category: 'Styling', color: 'bg-teal-500/20' },
+    { name: 'Recharts', category: 'Charts', color: 'bg-orange-500/20' },
   ];
 
   const timeline = [
     { phase: 'Análisis', description: 'Exploración del dataset y entendimiento del problema', done: true },
-    { phase: 'Preprocesamiento', description: 'Limpieza de datos y validación de SMILES', done: true },
-    { phase: 'Modelado', description: 'Entrenamiento de ChemProp con 5-fold CV', done: true },
-    { phase: 'API', description: 'Desarrollo de FastAPI con endpoints REST', done: true },
-    { phase: 'Dashboard', description: 'Frontend interactivo con visualizaciones', done: true },
-    { phase: 'Deployment', description: 'Documentación y preparación para producción', done: false },
+    { phase: 'ChemProp', description: 'Entrenamiento D-MPNN con 5-fold CV (MAE 28.85 K)', done: true },
+    { phase: 'Ensemble', description: 'XGBoost + LightGBM con fingerprints (MAE 26.64 K)', done: true },
+    { phase: 'Híbrido', description: 'Combinación óptima 20/80 (MAE 22.80 K Kaggle)', done: true },
+    { phase: 'Dashboard', description: 'Sistema de toma de decisiones con visualizaciones', done: true },
+    { phase: 'Producción', description: 'API REST + Frontend desplegado', done: true },
   ];
 
   return (
@@ -144,8 +145,8 @@ export default function AboutPage() {
             </div>
             <div className="p-4 rounded-xl bg-claude-bg border border-claude-border">
               <Target className="w-5 h-5 text-purple-400 mb-2" />
-              <p className="text-claude-text-muted text-sm">Métrica</p>
-              <p className="text-claude-text font-medium">{competitionInfo.metric}</p>
+              <p className="text-claude-text-muted text-sm">Nuestro Resultado</p>
+              <p className="text-claude-orange font-bold">{competitionInfo.result}</p>
             </div>
           </div>
         </div>
@@ -222,12 +223,13 @@ export default function AboutPage() {
               </div>
               <h3 className="text-lg font-semibold text-claude-text mb-2">Procesamiento</h3>
               <p className="text-claude-text-secondary text-sm">
-                El modelo ChemProp convierte el SMILES en un grafo molecular y aplica 
-                message passing neural network.
+                El modelo híbrido usa ChemProp (grafo molecular) + Ensemble
+                (fingerprints Morgan y MACCS).
               </p>
               <div className="mt-3 flex justify-center gap-2">
-                <span className="px-2 py-1 rounded bg-purple-500/20 text-purple-400 text-xs">MPNN</span>
-                <span className="px-2 py-1 rounded bg-purple-500/20 text-purple-400 text-xs">GNN</span>
+                <span className="px-2 py-1 rounded bg-purple-500/20 text-purple-400 text-xs">D-MPNN</span>
+                <span className="px-2 py-1 rounded bg-blue-500/20 text-blue-400 text-xs">XGB</span>
+                <span className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 text-xs">LGB</span>
               </div>
             </div>
             
@@ -237,10 +239,10 @@ export default function AboutPage() {
               </div>
               <h3 className="text-lg font-semibold text-claude-text mb-2">Predicción</h3>
               <p className="text-claude-text-secondary text-sm">
-                El modelo retorna el punto de fusión predicho en Kelvin con alta precisión.
+                El modelo combina predicciones (20% ChemProp + 80% Ensemble) con incertidumbre ±22.8 K.
               </p>
               <div className="mt-3 p-2 rounded-lg bg-claude-orange/10 border border-claude-orange/30">
-                <span className="text-claude-orange font-bold">289.5 K</span>
+                <span className="text-claude-orange font-bold">289.5 ± 22.8 K</span>
                 <span className="text-claude-text-muted text-xs ml-2">(16.4°C)</span>
               </div>
             </div>
