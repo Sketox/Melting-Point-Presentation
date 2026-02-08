@@ -26,6 +26,7 @@ import {
   Database,
   FlaskConical,
   User,
+  LogIn,
 } from 'lucide-react';
 import {
   getAllData,
@@ -36,12 +37,15 @@ import {
   deleteCompound,
   validateSmiles,
   getCompoundName,
+  getStoredUser,
   DataItem,
   Compound,
+  User as UserType,
   kelvinToCelsius,
   MODEL_MAE,
   SOURCE_COLORS,
 } from '@/lib/api';
+import Link from 'next/link';
 
 type SortField = 'id' | 'Tm_pred' | 'source';
 type SortDirection = 'asc' | 'desc';
@@ -96,11 +100,16 @@ export default function PredictionsPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [copiedId, setCopiedId] = useState<string | number | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const itemsPerPage = 20;
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+
+    // Check auth
+    const user = getStoredUser();
+    setCurrentUser(user);
 
     try {
       await checkHealth();
@@ -205,6 +214,11 @@ export default function PredictionsPage() {
   };
 
   const handleAddCompound = async () => {
+    if (!currentUser) {
+      setAddError('Debes iniciar sesión para agregar compuestos');
+      return;
+    }
+
     if (!newSmiles.trim() || !newName.trim()) {
       setAddError('SMILES y nombre son requeridos');
       return;
@@ -260,7 +274,8 @@ export default function PredictionsPage() {
       result = result.filter(item =>
         item.id.toString().includes(search) ||
         item.smiles.toLowerCase().includes(search) ||
-        item.Tm_pred.toFixed(2).includes(search)
+        item.Tm_pred.toFixed(2).includes(search) ||
+        (item.name && item.name.toLowerCase().includes(search))
       );
     }
 
@@ -304,10 +319,9 @@ export default function PredictionsPage() {
   const exportToCSV = () => {
     const headers = ['ID', 'Nombre', 'SMILES', 'Tm (K)', 'Tm (°C)', 'Fuente'];
     const rows = filteredAndSorted.map(item => {
-      const name = item.source === 'user' ? (compounds.find(c => c.id === item.id)?.name || '') : '';
       return [
         item.id,
-        `"${name}"`,
+        `"${item.name || ''}"`,
         `"${item.smiles}"`,
         item.Tm_pred.toFixed(2),
         kelvinToCelsius(item.Tm_pred).toFixed(2),
@@ -459,16 +473,28 @@ export default function PredictionsPage() {
               <div className="p-2 rounded-xl bg-orange-500/20 text-orange-400"><Beaker className="w-5 h-5" /></div>
               <div>
                 <h2 className="text-lg font-bold text-claude-text">Agregar Compuesto</h2>
-                <p className="text-claude-text-muted text-xs">{compounds.length} compuestos de usuario</p>
+                <p className="text-claude-text-muted text-xs">
+                  {currentUser ? (
+                    <><span className="text-orange-400">{currentUser.username}</span> &bull; {compounds.length} compuestos</>
+                  ) : (
+                    'Inicia sesión para agregar compuestos'
+                  )}
+                </p>
               </div>
             </div>
-            <button onClick={() => setShowAddForm(!showAddForm)} className="px-4 py-2 rounded-xl bg-orange-500/10 border border-orange-500/30 text-orange-400 font-semibold hover:bg-orange-500/20 transition-all flex items-center gap-2">
-              <Plus className="w-4 h-4" />{showAddForm ? 'Cerrar' : 'Nuevo'}
-            </button>
+            {currentUser ? (
+              <button onClick={() => setShowAddForm(!showAddForm)} className="px-4 py-2 rounded-xl bg-orange-500/10 border border-orange-500/30 text-orange-400 font-semibold hover:bg-orange-500/20 transition-all flex items-center gap-2">
+                <Plus className="w-4 h-4" />{showAddForm ? 'Cerrar' : 'Nuevo'}
+              </button>
+            ) : (
+              <Link href="/login" className="px-4 py-2 rounded-xl bg-claude-orange/10 border border-claude-orange/30 text-claude-orange font-semibold hover:bg-claude-orange/20 transition-all flex items-center gap-2">
+                <LogIn className="w-4 h-4" />Iniciar sesión
+              </Link>
+            )}
           </div>
 
           <AnimatePresence>
-            {showAddForm && (
+            {showAddForm && currentUser && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="p-4 rounded-xl bg-claude-bg border border-claude-border overflow-hidden">
                 <div className="grid sm:grid-cols-2 gap-4 mb-4">
                   <div>
@@ -520,7 +546,7 @@ export default function PredictionsPage() {
           </AnimatePresence>
 
           {/* User compounds list */}
-          {compounds.length > 0 && (
+          {currentUser && compounds.length > 0 && (
             <div className="space-y-2 mt-4">
               {compounds.map((compound) => (
                 <div key={compound.id} className="flex items-center justify-between p-3 rounded-xl bg-claude-bg border border-claude-border">
@@ -608,11 +634,9 @@ export default function PredictionsPage() {
                     <motion.tr key={`${item.source}-${item.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.1, delay: index * 0.01 }} className="border-b border-claude-border/50 hover:bg-claude-orange/5">
                       <td className="px-4 py-3"><span className="px-2 py-1 rounded-lg bg-claude-bg-tertiary text-claude-text font-mono text-sm">{item.id}</span></td>
                       <td className="px-4 py-3">
-                        {item.source === 'user' ? (
-                          <span className="text-claude-text text-sm">{compounds.find(c => c.id === item.id)?.name || '-'}</span>
-                        ) : (
-                          <span className="text-claude-text-muted text-xs">-</span>
-                        )}
+                        <span className={`text-sm ${item.name ? 'text-claude-text' : 'text-claude-text-muted'}`}>
+                          {item.name || '-'}
+                        </span>
                       </td>
                       <td className="px-4 py-3"><code className="text-xs text-claude-text-muted font-mono truncate block max-w-[180px]" title={item.smiles}>{item.smiles || '-'}</code></td>
                       <td className="px-4 py-3">

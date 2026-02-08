@@ -130,6 +130,7 @@ export interface DataItem {
   smiles: string;
   Tm_pred: number;
   source: 'train' | 'test' | 'user';
+  name?: string | null;
 }
 
 // Respuesta del endpoint de nombre de compuesto
