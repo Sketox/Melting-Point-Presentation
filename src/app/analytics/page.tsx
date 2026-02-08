@@ -28,7 +28,6 @@ import {
   AlertCircle,
   Database,
   User,
-  Sliders,
   Atom,
   Beaker,
   FlaskConical,
@@ -81,7 +80,6 @@ export default function AnalyticsPage() {
   const [allData, setAllData] = useState<DataItem[]>([]);
 
   // Filters
-  const [tempRange, setTempRange] = useState<[number, number]>([100, 600]);
   const [sourceFilter, setSourceFilter] = useState<'all' | 'train' | 'test' | 'user'>('all');
 
   const loadData = async () => {
@@ -106,11 +104,6 @@ export default function AnalyticsPage() {
       setMoleculeSizes(msData.size_groups || []);
       setAllData(dataAll || []);
 
-      // Set initial range based on data
-      if (dataAll && dataAll.length > 0) {
-        const temps = dataAll.map(d => d.Tm_pred);
-        setTempRange([Math.floor(Math.min(...temps)), Math.ceil(Math.max(...temps))]);
-      }
     } catch (err) {
       console.error('Error loading analytics data:', err);
       setError('No se pudo conectar al backend');
@@ -207,15 +200,6 @@ export default function AnalyticsPage() {
       smilesLength: d.smiles?.length || 0,
     }));
   }, [allData, sourceFilter]);
-
-  // Filtered data by range AND source
-  const filteredData = useMemo(() => {
-    let data = allData;
-    if (sourceFilter !== 'all') {
-      data = data.filter(d => d.source === sourceFilter);
-    }
-    return data.filter(d => d.Tm_pred >= tempRange[0] && d.Tm_pred <= tempRange[1]);
-  }, [allData, tempRange, sourceFilter]);
 
   // Functional groups data for visualization
   const topFunctionalGroups = useMemo(() => {
@@ -649,68 +633,7 @@ export default function AnalyticsPage() {
       </motion.div>
 
       {/* ========================================== */}
-      {/* SECCION 7: Selector de Rango Interactivo */}
-      {/* ========================================== */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-6 border border-claude-border">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
-            <Sliders className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-claude-text">Selector de Rango Interactivo</h3>
-            <p className="text-claude-text-secondary text-sm">Filtra compuestos por rango de temperatura</p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-6 mb-6">
-          <div>
-            <label className="text-claude-text-muted text-sm block mb-1">Mínimo (K)</label>
-            <input
-              type="number"
-              value={tempRange[0]}
-              onChange={(e) => setTempRange([Number(e.target.value), tempRange[1]])}
-              className="w-28 px-3 py-2 bg-claude-bg border border-claude-border rounded-xl text-claude-text focus:border-emerald-400 transition-all"
-            />
-          </div>
-          <div className="text-2xl text-claude-text-muted">→</div>
-          <div>
-            <label className="text-claude-text-muted text-sm block mb-1">Máximo (K)</label>
-            <input
-              type="number"
-              value={tempRange[1]}
-              onChange={(e) => setTempRange([tempRange[0], Number(e.target.value)])}
-              className="w-28 px-3 py-2 bg-claude-bg border border-claude-border rounded-xl text-claude-text focus:border-emerald-400 transition-all"
-            />
-          </div>
-          <div className="flex-1 text-right">
-            <p className="text-claude-text-muted text-sm mb-1">Compuestos en rango</p>
-            <p className="text-3xl font-bold text-emerald-400">
-              {filteredData.length.toLocaleString()}
-              <span className="text-sm font-normal text-claude-text-muted ml-2">
-                ({((filteredData.length / allData.length) * 100).toFixed(1)}%)
-              </span>
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-            <p className="text-emerald-400 text-2xl font-bold">{filteredData.filter(d => d.source === 'train').length}</p>
-            <p className="text-sm text-claude-text-muted">Train</p>
-          </div>
-          <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/30">
-            <p className="text-blue-400 text-2xl font-bold">{filteredData.filter(d => d.source === 'test').length}</p>
-            <p className="text-sm text-claude-text-muted">Test</p>
-          </div>
-          <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/30">
-            <p className="text-orange-400 text-2xl font-bold">{filteredData.filter(d => d.source === 'user').length}</p>
-            <p className="text-sm text-claude-text-muted">Usuario</p>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* ========================================== */}
-      {/* SECCION 8: Guia de Interpretacion */}
+      {/* SECCION 7: Guia de Interpretacion */}
       {/* ========================================== */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-start gap-3 p-4 rounded-xl bg-claude-orange/10 border border-claude-orange/20">
         <AlertCircle className="w-5 h-5 text-claude-orange flex-shrink-0 mt-0.5" />

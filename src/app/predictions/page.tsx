@@ -27,19 +27,18 @@ import {
   FlaskConical,
   User,
   LogIn,
+  Sliders,
 } from 'lucide-react';
 import {
   getAllData,
   predictById,
   checkHealth,
-  getCompounds,
   createCompound,
   deleteCompound,
   validateSmiles,
   getCompoundName,
   getStoredUser,
   DataItem,
-  Compound,
   User as UserType,
   kelvinToCelsius,
   MODEL_MAE,
@@ -69,7 +68,6 @@ const SourceBadge = ({ source }: { source: 'train' | 'test' | 'user' }) => {
 
 export default function PredictionsPage() {
   const [allData, setAllData] = useState<DataItem[]>([]);
-  const [compounds, setCompounds] = useState<Compound[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -84,6 +82,7 @@ export default function PredictionsPage() {
   const [newName, setNewName] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+  const [addSuccess, setAddSuccess] = useState<{ name: string; tm: number } | null>(null);
   const [isValidatingSmiles, setIsValidatingSmiles] = useState(false);
   const [smilesValidation, setSmilesValidation] = useState<{
     valid: boolean;
@@ -96,6 +95,8 @@ export default function PredictionsPage() {
 
   const [tableSearch, setTableSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
+  const [tempRange, setTempRange] = useState<[number, number]>([0, 9999]);
+  const [tempRangeEnabled, setTempRangeEnabled] = useState(false);
   const [sortField, setSortField] = useState<SortField>('id');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -117,13 +118,6 @@ export default function PredictionsPage() {
 
       const data = await getAllData();
       setAllData(data);
-
-      try {
-        const compoundsResponse = await getCompounds();
-        setCompounds(compoundsResponse.compounds || []);
-      } catch {
-        setCompounds([]);
-      }
     } catch {
       setError('No se pudo conectar al backend');
       setIsConnected(false);
@@ -231,11 +225,13 @@ export default function PredictionsPage() {
 
     setIsAdding(true);
     setAddError(null);
+    setAddSuccess(null);
 
     try {
-      const newCompound = await createCompound(newSmiles, newName);
-      setCompounds(prev => [...prev, newCompound]);
-      // Refresh data to include new compound
+      const newCompound = await createCompound(newSmiles, newName, currentUser.username);
+      // Show success message with prediction
+      setAddSuccess({ name: newCompound.name, tm: newCompound.Tm_pred });
+      // Refresh data to include new compound from DB
       const data = await getAllData();
       setAllData(data);
       setNewSmiles('');
@@ -253,12 +249,17 @@ export default function PredictionsPage() {
   const handleDeleteCompound = async (id: string) => {
     try {
       await deleteCompound(id);
-      setCompounds(prev => prev.filter(c => c.id !== id));
       setAllData(prev => prev.filter(item => item.id !== id));
     } catch (err) {
       console.error('Error deleting:', err);
     }
   };
+
+  // User's own compounds (from DB, filtered by current user)
+  const myCompounds = useMemo(() => {
+    if (!currentUser) return [];
+    return allData.filter(item => item.source === 'user' && item.created_by === currentUser.username);
+  }, [allData, currentUser]);
 
   const filteredAndSorted = useMemo(() => {
     let result = allData;
@@ -266,6 +267,11 @@ export default function PredictionsPage() {
     // Filter by source
     if (sourceFilter !== 'all') {
       result = result.filter(item => item.source === sourceFilter);
+    }
+
+    // Filter by temperature range
+    if (tempRangeEnabled) {
+      result = result.filter(item => item.Tm_pred >= tempRange[0] && item.Tm_pred <= tempRange[1]);
     }
 
     // Filter by search
@@ -293,7 +299,7 @@ export default function PredictionsPage() {
     });
 
     return result;
-  }, [allData, tableSearch, sourceFilter, sortField, sortDirection]);
+  }, [allData, tableSearch, sourceFilter, tempRange, tempRangeEnabled, sortField, sortDirection]);
 
   const totalPages = Math.ceil(filteredAndSorted.length / itemsPerPage);
   const paginatedData = filteredAndSorted.slice(
@@ -345,6 +351,20 @@ export default function PredictionsPage() {
       ? <ChevronUp className="w-4 h-4 text-claude-orange" />
       : <ChevronDown className="w-4 h-4 text-claude-orange" />;
   };
+
+  // Data bounds for range slider
+  const dataBounds = useMemo(() => {
+    if (allData.length === 0) return { min: 0, max: 1000 };
+    const temps = allData.map(d => d.Tm_pred);
+    return { min: Math.floor(Math.min(...temps)), max: Math.ceil(Math.max(...temps)) };
+  }, [allData]);
+
+  // Initialize range when data loads
+  useEffect(() => {
+    if (allData.length > 0 && tempRange[0] === 0 && tempRange[1] === 9999) {
+      setTempRange([dataBounds.min, dataBounds.max]);
+    }
+  }, [allData.length, dataBounds]);
 
   // Stats by source
   const stats = useMemo(() => {
@@ -475,7 +495,7 @@ export default function PredictionsPage() {
                 <h2 className="text-lg font-bold text-claude-text">Agregar Compuesto</h2>
                 <p className="text-claude-text-muted text-xs">
                   {currentUser ? (
-                    <><span className="text-orange-400">{currentUser.username}</span> &bull; {compounds.length} compuestos</>
+                    <><span className="text-orange-400">{currentUser.username}</span> &bull; {myCompounds.length} compuestos</>
                   ) : (
                     'Inicia sesión para agregar compuestos'
                   )}
@@ -545,21 +565,37 @@ export default function PredictionsPage() {
             )}
           </AnimatePresence>
 
-          {/* User compounds list */}
-          {currentUser && compounds.length > 0 && (
+          {/* Success message after adding */}
+          {addSuccess && (
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3 p-4 mt-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+              <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+              <div>
+                <p className="text-emerald-400 font-semibold">Compuesto agregado exitosamente</p>
+                <p className="text-claude-text-secondary text-sm">
+                  <span className="text-claude-text font-medium">{addSuccess.name}</span> — Punto de fusión predicho: <span className="text-orange-400 font-bold">{addSuccess.tm.toFixed(2)} K</span> ({kelvinToCelsius(addSuccess.tm).toFixed(1)}°C) ± {MODEL_MAE.toFixed(1)} K
+                </p>
+              </div>
+              <button onClick={() => setAddSuccess(null)} className="ml-auto text-claude-text-muted hover:text-claude-text">
+                <XCircle className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+
+          {/* User compounds list (only current user's compounds from DB) */}
+          {currentUser && myCompounds.length > 0 && (
             <div className="space-y-2 mt-4">
-              {compounds.map((compound) => (
+              {myCompounds.map((compound) => (
                 <div key={compound.id} className="flex items-center justify-between p-3 rounded-xl bg-claude-bg border border-claude-border">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 flex-wrap">
                       <span className="text-xs text-claude-text-muted font-mono">{compound.id}</span>
-                      <span className="font-semibold text-claude-text">{compound.name}</span>
+                      <span className="font-semibold text-claude-text">{compound.name || '-'}</span>
                       <span className="text-orange-400 font-bold">{compound.Tm_pred.toFixed(2)} K</span>
                       <SourceBadge source="user" />
                     </div>
                     <code className="text-xs text-claude-text-muted font-mono truncate block mt-1">{compound.smiles}</code>
                   </div>
-                  <button onClick={() => handleDeleteCompound(compound.id)} className="p-2 rounded-lg text-claude-text-muted hover:text-red-400 hover:bg-red-400/10 ml-2"><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => handleDeleteCompound(String(compound.id))} className="p-2 rounded-lg text-claude-text-muted hover:text-red-400 hover:bg-red-400/10 ml-2"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}
             </div>
@@ -608,45 +644,173 @@ export default function PredictionsPage() {
                 </button>
               </div>
             </div>
+
+            {/* Temperature Range Filter */}
+            <div className="mt-4 pt-4 border-t border-claude-border/50">
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  onClick={() => { setTempRangeEnabled(!tempRangeEnabled); setCurrentPage(1); }}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-sm font-medium transition-all ${
+                    tempRangeEnabled
+                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                      : 'border-claude-border text-claude-text-secondary hover:text-claude-text hover:border-claude-border'
+                  }`}
+                >
+                  <Sliders className="w-4 h-4" />
+                  Rango de Tm
+                </button>
+
+                {tempRangeEnabled && (
+                  <span className="text-emerald-400 font-bold text-sm">
+                    {filteredAndSorted.length.toLocaleString()} compuestos
+                    <span className="text-claude-text-muted font-normal ml-1">
+                      ({allData.length > 0 ? ((filteredAndSorted.length / allData.length) * 100).toFixed(1) : 0}%)
+                    </span>
+                  </span>
+                )}
+              </div>
+
+              {tempRangeEnabled && (
+                <div className="space-y-3">
+                  {/* Slider */}
+                  <div className="px-2 pt-2 pb-1">
+                    <div className="range-slider">
+                      <div
+                        className="range-track"
+                        style={{
+                          left: `${((tempRange[0] - dataBounds.min) / (dataBounds.max - dataBounds.min)) * 100}%`,
+                          right: `${100 - ((tempRange[1] - dataBounds.min) / (dataBounds.max - dataBounds.min)) * 100}%`,
+                        }}
+                      />
+                      <input
+                        type="range"
+                        min={dataBounds.min}
+                        max={dataBounds.max}
+                        step={1}
+                        value={tempRange[0]}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          if (val <= tempRange[1]) {
+                            setTempRange([val, tempRange[1]]);
+                            setCurrentPage(1);
+                          }
+                        }}
+                      />
+                      <input
+                        type="range"
+                        min={dataBounds.min}
+                        max={dataBounds.max}
+                        step={1}
+                        value={tempRange[1]}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          if (val >= tempRange[0]) {
+                            setTempRange([tempRange[0], val]);
+                            setCurrentPage(1);
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-[10px] text-claude-text-muted">{dataBounds.min} K</span>
+                      <span className="text-[10px] text-claude-text-muted">{dataBounds.max} K</span>
+                    </div>
+                  </div>
+
+                  {/* Inputs */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <input
+                        type="number"
+                        min={dataBounds.min}
+                        max={tempRange[1]}
+                        value={tempRange[0]}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setTempRange([val, Math.max(val, tempRange[1])]);
+                          setCurrentPage(1);
+                        }}
+                        className="w-full px-3 py-1.5 bg-claude-bg border border-claude-border rounded-xl text-sm text-claude-text text-center focus:border-emerald-400 transition-all"
+                        placeholder="Min"
+                      />
+                      <span className="text-[10px] text-claude-text-muted block text-center mt-0.5">Min (K)</span>
+                    </div>
+                    <span className="text-claude-text-muted text-lg">–</span>
+                    <div className="flex-1">
+                      <input
+                        type="number"
+                        min={tempRange[0]}
+                        max={dataBounds.max}
+                        value={tempRange[1]}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setTempRange([Math.min(tempRange[0], val), val]);
+                          setCurrentPage(1);
+                        }}
+                        className="w-full px-3 py-1.5 bg-claude-bg border border-claude-border rounded-xl text-sm text-claude-text text-center focus:border-emerald-400 transition-all"
+                        placeholder="Max"
+                      />
+                      <span className="text-[10px] text-claude-text-muted block text-center mt-0.5">Max (K)</span>
+                    </div>
+                    <button
+                      onClick={() => { setTempRange([dataBounds.min, dataBounds.max]); setCurrentPage(1); }}
+                      className="px-2 py-1.5 rounded-xl border border-claude-border text-claude-text-muted hover:text-claude-text hover:border-claude-border text-xs transition-all"
+                      title="Resetear rango"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full table-fixed">
+              <colgroup>
+                <col className="w-[70px]" />
+                <col className="w-[30%]" />
+                <col />
+                <col className="w-[170px]" />
+                <col className="w-[110px]" />
+                <col className="w-[70px]" />
+              </colgroup>
               <thead>
                 <tr className="border-b border-claude-border bg-claude-bg-secondary/50">
-                  <th className="px-4 py-3 text-left cursor-pointer hover:bg-claude-orange/10" onClick={() => handleSort('id')}>
-                    <div className="flex items-center gap-2 text-xs font-semibold text-claude-text-secondary uppercase">ID <SortIcon field="id" /></div>
+                  <th className="px-3 py-3 text-left cursor-pointer hover:bg-claude-orange/10" onClick={() => handleSort('id')}>
+                    <div className="flex items-center gap-1 text-xs font-semibold text-claude-text-secondary uppercase">ID <SortIcon field="id" /></div>
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-claude-text-secondary uppercase">Nombre</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-claude-text-secondary uppercase">SMILES</th>
-                  <th className="px-4 py-3 text-left cursor-pointer hover:bg-claude-orange/10" onClick={() => handleSort('Tm_pred')}>
-                    <div className="flex items-center gap-2 text-xs font-semibold text-claude-text-secondary uppercase"><Thermometer className="w-4 h-4" />Tm <SortIcon field="Tm_pred" /></div>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-claude-text-secondary uppercase">Nombre</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-claude-text-secondary uppercase">SMILES</th>
+                  <th className="px-3 py-3 text-left cursor-pointer hover:bg-claude-orange/10" onClick={() => handleSort('Tm_pred')}>
+                    <div className="flex items-center gap-1 text-xs font-semibold text-claude-text-secondary uppercase whitespace-nowrap"><Thermometer className="w-4 h-4" />Tm <SortIcon field="Tm_pred" /></div>
                   </th>
-                  <th className="px-4 py-3 text-left cursor-pointer hover:bg-claude-orange/10" onClick={() => handleSort('source')}>
-                    <div className="flex items-center gap-2 text-xs font-semibold text-claude-text-secondary uppercase">Fuente <SortIcon field="source" /></div>
+                  <th className="px-3 py-3 text-left cursor-pointer hover:bg-claude-orange/10" onClick={() => handleSort('source')}>
+                    <div className="flex items-center gap-1 text-xs font-semibold text-claude-text-secondary uppercase">Fuente <SortIcon field="source" /></div>
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-claude-text-secondary uppercase">Acciones</th>
+                  <th className="px-3 py-3 text-center text-xs font-semibold text-claude-text-secondary uppercase">Acc.</th>
                 </tr>
               </thead>
               <tbody>
                 <AnimatePresence mode="popLayout">
                   {paginatedData.map((item, index) => (
                     <motion.tr key={`${item.source}-${item.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.1, delay: index * 0.01 }} className="border-b border-claude-border/50 hover:bg-claude-orange/5">
-                      <td className="px-4 py-3"><span className="px-2 py-1 rounded-lg bg-claude-bg-tertiary text-claude-text font-mono text-sm">{item.id}</span></td>
-                      <td className="px-4 py-3">
-                        <span className={`text-sm ${item.name ? 'text-claude-text' : 'text-claude-text-muted'}`}>
+                      <td className="px-3 py-3"><span className="px-2 py-1 rounded-lg bg-claude-bg-tertiary text-claude-text font-mono text-sm">{item.id}</span></td>
+                      <td className="px-3 py-3">
+                        <span className={`text-sm truncate block ${item.name ? 'text-claude-text' : 'text-claude-text-muted'}`} title={item.name || ''}>
                           {item.name || '-'}
                         </span>
+                        {item.source === 'user' && item.created_by && (
+                          <span className="text-[11px] text-orange-400/70 truncate block">por {item.created_by}</span>
+                        )}
                       </td>
-                      <td className="px-4 py-3"><code className="text-xs text-claude-text-muted font-mono truncate block max-w-[180px]" title={item.smiles}>{item.smiles || '-'}</code></td>
-                      <td className="px-4 py-3">
-                        <div>
-                          <span className="font-bold" style={{ color: SOURCE_COLORS[item.source] }}>{item.Tm_pred.toFixed(2)} K</span>
-                          <span className="text-claude-text-muted text-xs ml-2">({kelvinToCelsius(item.Tm_pred).toFixed(1)}°C)</span>
-                        </div>
+                      <td className="px-3 py-3"><code className="text-xs text-claude-text-muted font-mono truncate block" title={item.smiles}>{item.smiles || '-'}</code></td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <span className="font-bold" style={{ color: SOURCE_COLORS[item.source] }}>{item.Tm_pred.toFixed(2)} K</span>
+                        <span className="text-claude-text-muted text-xs ml-1">({kelvinToCelsius(item.Tm_pred).toFixed(1)}°C)</span>
                       </td>
-                      <td className="px-4 py-3"><SourceBadge source={item.source} /></td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-3 py-3"><SourceBadge source={item.source} /></td>
+                      <td className="px-3 py-3 text-center">
                         <button onClick={() => copyToClipboard(`${item.smiles}\t${item.Tm_pred.toFixed(2)}`, item.id)} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-claude-border hover:border-claude-orange hover:text-claude-orange text-xs text-claude-text-secondary">
                           {copiedId === item.id ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
                         </button>

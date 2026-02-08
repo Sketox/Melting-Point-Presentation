@@ -17,7 +17,9 @@ import {
   ExternalLink,
   LogIn,
   LogOut,
-  User
+  User,
+  FileText,
+  Settings,
 } from 'lucide-react';
 import { getStoredUser, logout, User as UserType } from '@/lib/api';
 
@@ -25,6 +27,7 @@ const navItems = [
   { href: '/', label: 'Inicio', icon: Home },
   { href: '/predictions', label: 'Predicciones', icon: Table2 },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/decision-support', label: 'Decision', icon: FileText },
   { href: '/model', label: 'Modelo', icon: Brain },
   { href: '/about', label: 'Acerca de', icon: Info },
 ];
@@ -196,12 +199,19 @@ export default function Navbar() {
                           <p className="text-claude-text font-medium">{user.username}</p>
                           <p className="text-claude-text-muted text-xs truncate">{user.email}</p>
                         </div>
+                        <Link
+                          href="/profile"
+                          className="w-full flex items-center gap-2 px-4 py-2 text-claude-text-secondary hover:text-claude-text hover:bg-claude-bg-secondary transition-colors text-sm"
+                        >
+                          <Settings className="w-4 h-4" />
+                          Editar perfil
+                        </Link>
                         <button
                           onClick={handleLogout}
                           className="w-full flex items-center gap-2 px-4 py-2 text-red-400 hover:bg-red-500/10 transition-colors text-sm"
                         >
                           <LogOut className="w-4 h-4" />
-                          Cerrar sesión
+                          Cerrar sesion
                         </button>
                       </motion.div>
                     )}
@@ -213,7 +223,7 @@ export default function Navbar() {
                   className="flex items-center gap-2 px-3 py-2 rounded-lg border border-claude-border hover:border-claude-orange text-claude-text hover:text-claude-orange transition-all text-sm font-medium"
                 >
                   <LogIn className="w-4 h-4" />
-                  <span className="hidden md:inline">Entrar</span>
+                  <span className="hidden md:inline">Login</span>
                 </Link>
               )}
 
@@ -281,12 +291,19 @@ export default function Navbar() {
                           <p className="text-claude-text-muted text-xs">{user.email}</p>
                         </div>
                       </div>
+                      <Link
+                        href="/profile"
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-claude-text-secondary hover:text-claude-text hover:bg-claude-bg-secondary transition-colors"
+                      >
+                        <Settings className="w-5 h-5" />
+                        <span className="font-medium">Editar perfil</span>
+                      </Link>
                       <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-colors"
                       >
                         <LogOut className="w-5 h-5" />
-                        <span className="font-medium">Cerrar sesión</span>
+                        <span className="font-medium">Cerrar sesion</span>
                       </button>
                     </>
                   ) : (
@@ -295,7 +312,7 @@ export default function Navbar() {
                       className="flex items-center gap-3 px-4 py-3 rounded-xl text-claude-orange hover:bg-claude-orange/10 transition-colors"
                     >
                       <LogIn className="w-5 h-5" />
-                      <span className="font-medium">Iniciar sesión</span>
+                      <span className="font-medium">Login</span>
                     </Link>
                   )}
                 </div>

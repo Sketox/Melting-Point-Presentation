@@ -131,6 +131,7 @@ export interface DataItem {
   Tm_pred: number;
   source: 'train' | 'test' | 'user';
   name?: string | null;
+  created_by?: string | null;
 }
 
 // Respuesta del endpoint de nombre de compuesto
@@ -253,10 +254,10 @@ export async function getCompounds(): Promise<CompoundsListResponse> {
   return fetchApi<CompoundsListResponse>('/compounds');
 }
 
-export async function createCompound(smiles: string, name: string): Promise<Compound> {
+export async function createCompound(smiles: string, name: string, createdBy?: string): Promise<Compound> {
   return fetchApi<Compound>('/compounds', {
     method: 'POST',
-    body: JSON.stringify({ smiles, name }),
+    body: JSON.stringify({ smiles, name, created_by: createdBy }),
   });
 }
 
@@ -264,6 +265,46 @@ export async function deleteCompound(id: string): Promise<void> {
   return fetchApi<void>(`/compounds/${id}`, {
     method: 'DELETE',
   });
+}
+
+// ============================================
+// DECISION SUPPORT ENDPOINTS
+// ============================================
+
+export interface SimilarCompound {
+  smiles: string;
+  similarity: number;
+  Tm_pred: number;
+  source: 'train' | 'test' | 'user';
+  name?: string;
+}
+
+export interface RecommendResponse {
+  query_smiles: string;
+  results: SimilarCompound[];
+}
+
+export async function recommendSimilar(
+  smiles: string,
+  targetTm: number = 350,
+  minSimilarity: number = 0.35,
+  maxResults: number = 5
+): Promise<RecommendResponse> {
+  return fetchApi<RecommendResponse>('/api/recommend-similar', {
+    method: 'POST',
+    body: JSON.stringify({
+      smiles,
+      property_requirements: {
+        target_tm_k: targetTm,
+        min_similarity: minSimilarity,
+        max_results: maxResults,
+      },
+    }),
+  });
+}
+
+export function getReportUrl(predictionId: string | number): string {
+  return `${API_BASE_URL}/api/generate-report/${predictionId}`;
 }
 
 // ============================================
@@ -438,4 +479,25 @@ export async function logout(): Promise<void> {
 
 export async function getCurrentUser(): Promise<User> {
   return fetchApiWithAuth<User>('/auth/me');
+}
+
+export interface UpdateProfileRequest {
+  username?: string;
+  email?: string;
+  full_name?: string;
+  bio?: string;
+}
+
+export async function updateProfile(data: UpdateProfileRequest): Promise<User> {
+  return fetchApiWithAuth<User>('/auth/profile', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+  return fetchApiWithAuth<{ message: string }>('/auth/change-password', {
+    method: 'PUT',
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  });
 }
