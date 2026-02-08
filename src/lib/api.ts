@@ -283,3 +283,158 @@ export const SOURCE_COLORS = {
   test: '#60a5fa',   // Azul - predicciones
   user: '#f5a623',   // Naranja - usuario
 } as const;
+
+// ============================================
+// AUTH TYPES
+// ============================================
+
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  full_name?: string;
+  bio?: string;
+  created_at: string;
+  predictions_count: number;
+  is_active: boolean;
+}
+
+export interface Token {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
+export interface LoginResponse {
+  user: User;
+  token: Token;
+  message: string;
+}
+
+export interface RegisterResponse {
+  user: User;
+  token: Token;
+  message: string;
+}
+
+export interface RegisterRequest {
+  username: string;
+  email: string;
+  password: string;
+  full_name?: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+// ============================================
+// AUTH FUNCTIONS
+// ============================================
+
+const AUTH_TOKEN_KEY = 'melting_point_token';
+const AUTH_USER_KEY = 'melting_point_user';
+
+export function getStoredToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+export function getStoredUser(): User | null {
+  if (typeof window === 'undefined') return null;
+  const userStr = localStorage.getItem(AUTH_USER_KEY);
+  if (!userStr) return null;
+  try {
+    return JSON.parse(userStr);
+  } catch {
+    return null;
+  }
+}
+
+export function setAuthData(token: string, user: User): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
+  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+}
+
+export function clearAuthData(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(AUTH_USER_KEY);
+}
+
+export function isAuthenticated(): boolean {
+  return !!getStoredToken();
+}
+
+async function fetchApiWithAuth<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const token = getStoredToken();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...options?.headers,
+  };
+
+  if (token) {
+    (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+  }
+
+  const url = `${API_BASE_URL}${endpoint}`;
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Error desconocido' }));
+      throw new ApiError(response.status, error.detail || `HTTP ${response.status}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(0, 'No se pudo conectar al servidor');
+  }
+}
+
+export async function login(email: string, password: string): Promise<LoginResponse> {
+  const response = await fetchApi<LoginResponse>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+
+  // Store auth data
+  setAuthData(response.token.access_token, response.user);
+
+  return response;
+}
+
+export async function register(data: RegisterRequest): Promise<RegisterResponse> {
+  const response = await fetchApi<RegisterResponse>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+  // Store auth data
+  setAuthData(response.token.access_token, response.user);
+
+  return response;
+}
+
+export async function logout(): Promise<void> {
+  const token = getStoredToken();
+  if (token) {
+    try {
+      await fetchApiWithAuth('/auth/logout', { method: 'POST' });
+    } catch {
+      // Ignore errors on logout
+    }
+  }
+  clearAuthData();
+}
+
+export async function getCurrentUser(): Promise<User> {
+  return fetchApiWithAuth<User>('/auth/me');
+}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame,
@@ -14,8 +14,12 @@ import {
   Menu,
   X,
   Github,
-  ExternalLink
+  ExternalLink,
+  LogIn,
+  LogOut,
+  User
 } from 'lucide-react';
+import { getStoredUser, logout, User as UserType } from '@/lib/api';
 
 const navItems = [
   { href: '/', label: 'Inicio', icon: Home },
@@ -27,8 +31,11 @@ const navItems = [
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<UserType | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -37,6 +44,28 @@ export default function Navbar() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Check for logged in user
+  useEffect(() => {
+    const storedUser = getStoredUser();
+    setUser(storedUser);
+  }, [pathname]); // Re-check on page change
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setShowUserMenu(false);
+    if (showUserMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showUserMenu]);
+
+  const handleLogout = async () => {
+    await logout();
+    setUser(null);
+    setShowUserMenu(false);
+    router.push('/');
+  };
 
   // Close mobile menu on page change
   useEffect(() => {
@@ -111,11 +140,11 @@ export default function Navbar() {
             {/* Actions */}
             <div className="flex items-center gap-2">
               <a
-                href="https://www.kaggle.com/competitions/playground-series-s5e6"
+                href="https://www.kaggle.com/competitions/melting-point/overview"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="
-                  hidden md:flex items-center gap-2 px-3 py-2 
+                  hidden md:flex items-center gap-2 px-3 py-2
                   rounded-lg border border-claude-border
                   text-claude-text-secondary hover:text-claude-text
                   hover:border-claude-orange/50 transition-all text-sm
@@ -129,15 +158,64 @@ export default function Navbar() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="
-                  flex items-center gap-2 px-3 py-2 
+                  hidden sm:flex items-center gap-2 px-3 py-2
                   rounded-lg bg-claude-orange/10 border border-claude-orange/20
                   text-claude-orange hover:bg-claude-orange/20
                   transition-all text-sm font-medium
                 "
               >
                 <Github className="w-4 h-4" />
-                <span className="hidden sm:inline">GitHub</span>
+                <span className="hidden xl:inline">GitHub</span>
               </a>
+
+              {/* Auth Section */}
+              {user ? (
+                <div className="relative">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg border border-claude-border hover:border-claude-orange/50 transition-all text-sm"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-claude-orange/20 flex items-center justify-center">
+                      <User className="w-4 h-4 text-claude-orange" />
+                    </div>
+                    <span className="hidden md:inline text-claude-text font-medium">
+                      {user.username}
+                    </span>
+                  </button>
+
+                  {/* User Dropdown */}
+                  <AnimatePresence>
+                    {showUserMenu && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="absolute right-0 mt-2 w-48 py-2 bg-claude-bg-secondary border border-claude-border rounded-xl shadow-xl"
+                      >
+                        <div className="px-4 py-2 border-b border-claude-border">
+                          <p className="text-claude-text font-medium">{user.username}</p>
+                          <p className="text-claude-text-muted text-xs truncate">{user.email}</p>
+                        </div>
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-2 px-4 py-2 text-red-400 hover:bg-red-500/10 transition-colors text-sm"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Cerrar sesión
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-claude-border hover:border-claude-orange text-claude-text hover:text-claude-orange transition-all text-sm font-medium"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span className="hidden md:inline">Entrar</span>
+                </Link>
+              )}
 
               {/* Mobile Menu Button */}
               <button
@@ -170,7 +248,7 @@ export default function Navbar() {
                 {navItems.map((item) => {
                   const isActive = pathname === item.href;
                   const Icon = item.icon;
-                  
+
                   return (
                     <Link
                       key={item.href}
@@ -178,8 +256,8 @@ export default function Navbar() {
                       className={`
                         flex items-center gap-3 px-4 py-3 rounded-xl
                         transition-all duration-200
-                        ${isActive 
-                          ? 'bg-claude-orange/10 text-claude-orange border border-claude-orange/30' 
+                        ${isActive
+                          ? 'bg-claude-orange/10 text-claude-orange border border-claude-orange/30'
                           : 'text-claude-text-secondary hover:text-claude-text hover:bg-claude-bg-secondary'
                         }
                       `}
@@ -189,6 +267,38 @@ export default function Navbar() {
                     </Link>
                   );
                 })}
+
+                {/* Mobile Auth Section */}
+                <div className="border-t border-claude-border mt-2 pt-2">
+                  {user ? (
+                    <>
+                      <div className="px-4 py-3 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-claude-orange/20 flex items-center justify-center">
+                          <User className="w-5 h-5 text-claude-orange" />
+                        </div>
+                        <div>
+                          <p className="text-claude-text font-medium">{user.username}</p>
+                          <p className="text-claude-text-muted text-xs">{user.email}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-colors"
+                      >
+                        <LogOut className="w-5 h-5" />
+                        <span className="font-medium">Cerrar sesión</span>
+                      </button>
+                    </>
+                  ) : (
+                    <Link
+                      href="/login"
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl text-claude-orange hover:bg-claude-orange/10 transition-colors"
+                    >
+                      <LogIn className="w-5 h-5" />
+                      <span className="font-medium">Iniciar sesión</span>
+                    </Link>
+                  )}
+                </div>
               </nav>
             </div>
           </motion.div>

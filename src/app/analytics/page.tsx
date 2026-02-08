@@ -446,119 +446,118 @@ export default function AnalyticsPage() {
       </motion.div>
 
       {/* ========================================== */}
-      {/* SECCION 3: Distribución y Scatter Plot */}
+      {/* SECCION 3: Distribución por Temperatura */}
       {/* ========================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Distribution Histogram */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-6 border border-claude-border">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400">
-              <Thermometer className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-claude-text">Distribución por Temperatura</h3>
-              <p className="text-claude-text-secondary text-xs">Histograma por rango de Tm</p>
-            </div>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-6 border border-claude-border">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400">
+            <Thermometer className="w-5 h-5" />
           </div>
+          <div>
+            <h3 className="text-lg font-bold text-claude-text">Distribución por Temperatura</h3>
+            <p className="text-claude-text-secondary text-xs">Histograma por rango de Tm</p>
+          </div>
+        </div>
 
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={distributionBySource} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" />
-                <XAxis dataKey="name" tick={{ fill: '#a0a0a0', fontSize: 10 }} />
-                <YAxis tick={{ fill: '#a0a0a0', fontSize: 11 }} />
-                <Tooltip content={({ active, payload, label }) => {
-                  if (active && payload && payload.length) {
-                    return (
-                      <div className="bg-claude-bg-secondary rounded-xl p-3 shadow-lg border border-claude-border text-sm">
-                        <p className="font-bold text-claude-text mb-2">{label}</p>
-                        {payload.map((p: any) => (
-                          <p key={p.name} style={{ color: p.fill }}>
-                            {p.name === 'train' ? 'Train' : p.name === 'test' ? 'Test' : 'Usuario'}: {p.value}
-                          </p>
-                        ))}
-                      </div>
-                    );
-                  }
-                  return null;
-                }} />
-                <Legend formatter={(value) => value === 'train' ? 'Train' : value === 'test' ? 'Test' : 'Usuario'} />
-                {(sourceFilter === 'all' || sourceFilter === 'train') && <Bar dataKey="train" stackId="a" fill={SOURCE_COLORS.train} />}
-                {(sourceFilter === 'all' || sourceFilter === 'test') && <Bar dataKey="test" stackId="a" fill={SOURCE_COLORS.test} />}
-                {(sourceFilter === 'all' || sourceFilter === 'user') && <Bar dataKey="user" stackId="a" fill={SOURCE_COLORS.user} />}
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-
-        {/* Scatter Plot */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-6 border border-claude-border">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-claude-text">Complejidad vs Tm</h3>
-              <p className="text-claude-text-secondary text-xs">Longitud SMILES como proxy de complejidad</p>
-            </div>
-          </div>
-
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" />
-                <XAxis
-                  dataKey="smilesLength"
-                  name="SMILES Length"
-                  type="number"
-                  tick={{ fill: '#a0a0a0', fontSize: 11 }}
-                  label={{ value: 'Longitud SMILES', position: 'bottom', fill: '#a0a0a0', fontSize: 11, dy: 10 }}
-                />
-                <YAxis
-                  dataKey="Tm_pred"
-                  name="Tm (K)"
-                  tick={{ fill: '#a0a0a0', fontSize: 11 }}
-                />
-                <Tooltip content={<ScatterTooltip />} />
-                <Legend formatter={(value) => value === 'train' ? 'Train' : value === 'test' ? 'Test' : 'Usuario'} />
-                {(sourceFilter === 'all' || sourceFilter === 'train') && (
-                  <Scatter name="train" data={scatterData.filter(d => d.source === 'train')} fill={SOURCE_COLORS.train} opacity={0.6} />
-                )}
-                {(sourceFilter === 'all' || sourceFilter === 'test') && (
-                  <Scatter name="test" data={scatterData.filter(d => d.source === 'test')} fill={SOURCE_COLORS.test} opacity={0.6} />
-                )}
-                {(sourceFilter === 'all' || sourceFilter === 'user') && (
-                  <Scatter name="user" data={scatterData.filter(d => d.source === 'user')} fill={SOURCE_COLORS.user} opacity={1} />
-                )}
-              </ScatterChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-      </div>
+        <div className="h-96">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={distributionBySource} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" />
+              <XAxis dataKey="name" tick={{ fill: '#a0a0a0', fontSize: 12 }} />
+              <YAxis tick={{ fill: '#a0a0a0', fontSize: 12 }} />
+              <Tooltip content={({ active, payload, label }) => {
+                if (active && payload && payload.length) {
+                  return (
+                    <div className="bg-claude-bg-secondary rounded-xl p-3 shadow-lg border border-claude-border text-sm">
+                      <p className="font-bold text-claude-text mb-2">{label}</p>
+                      {payload.map((p: any) => (
+                        <p key={p.name} style={{ color: p.fill }}>
+                          {p.name === 'train' ? 'Train' : p.name === 'test' ? 'Test' : 'Usuario'}: {p.value}
+                        </p>
+                      ))}
+                    </div>
+                  );
+                }
+                return null;
+              }} />
+              <Legend formatter={(value) => value === 'train' ? 'Train' : value === 'test' ? 'Test' : 'Usuario'} />
+              {(sourceFilter === 'all' || sourceFilter === 'train') && <Bar dataKey="train" stackId="a" fill={SOURCE_COLORS.train} />}
+              {(sourceFilter === 'all' || sourceFilter === 'test') && <Bar dataKey="test" stackId="a" fill={SOURCE_COLORS.test} />}
+              {(sourceFilter === 'all' || sourceFilter === 'user') && <Bar dataKey="user" stackId="a" fill={SOURCE_COLORS.user} />}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </motion.div>
 
       {/* ========================================== */}
-      {/* SECCION 4: Análisis Químico */}
+      {/* SECCION 4: Scatter Plot - Complejidad vs Tm */}
       {/* ========================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Functional Groups Chart */}
-        {topFunctionalGroups.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-6 border border-claude-border">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-xl bg-pink-500/20 text-pink-400">
-                <Beaker className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-claude-text">Grupos Funcionales</h3>
-                <p className="text-claude-text-secondary text-xs">Top 10 grupos y su Tm promedio</p>
-              </div>
-            </div>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-6 border border-claude-border">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400">
+            <TrendingUp className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-claude-text">Complejidad vs Tm</h3>
+            <p className="text-claude-text-secondary text-xs">Longitud SMILES como proxy de complejidad molecular</p>
+          </div>
+        </div>
 
-            <div className="h-80">
+        <div className="h-96">
+          <ResponsiveContainer width="100%" height="100%">
+            <ScatterChart margin={{ top: 20, right: 30, bottom: 40, left: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" />
+              <XAxis
+                dataKey="smilesLength"
+                name="SMILES Length"
+                type="number"
+                tick={{ fill: '#a0a0a0', fontSize: 12 }}
+                label={{ value: 'Longitud SMILES', position: 'bottom', fill: '#a0a0a0', fontSize: 12, dy: 15 }}
+              />
+              <YAxis
+                dataKey="Tm_pred"
+                name="Tm (K)"
+                tick={{ fill: '#a0a0a0', fontSize: 12 }}
+                label={{ value: 'Tm (K)', angle: -90, position: 'insideLeft', fill: '#a0a0a0', fontSize: 12 }}
+              />
+              <Tooltip content={<ScatterTooltip />} />
+              <Legend formatter={(value) => value === 'train' ? 'Train' : value === 'test' ? 'Test' : 'Usuario'} />
+              {(sourceFilter === 'all' || sourceFilter === 'train') && (
+                <Scatter name="train" data={scatterData.filter(d => d.source === 'train')} fill={SOURCE_COLORS.train} opacity={0.7} />
+              )}
+              {(sourceFilter === 'all' || sourceFilter === 'test') && (
+                <Scatter name="test" data={scatterData.filter(d => d.source === 'test')} fill={SOURCE_COLORS.test} opacity={0.7} />
+              )}
+              {(sourceFilter === 'all' || sourceFilter === 'user') && (
+                <Scatter name="user" data={scatterData.filter(d => d.source === 'user')} fill={SOURCE_COLORS.user} opacity={1} />
+              )}
+            </ScatterChart>
+          </ResponsiveContainer>
+        </div>
+      </motion.div>
+
+      {/* ========================================== */}
+      {/* SECCION 5: Grupos Funcionales */}
+      {/* ========================================== */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-6 border border-claude-border">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-xl bg-pink-500/20 text-pink-400">
+            <Beaker className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-claude-text">Grupos Funcionales</h3>
+            <p className="text-claude-text-secondary text-xs">Análisis de grupos químicos y su relación con el punto de fusión</p>
+          </div>
+        </div>
+
+        {topFunctionalGroups.length > 0 ? (
+          <>
+            <div className="h-96">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={topFunctionalGroups} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
+                <ComposedChart data={topFunctionalGroups} layout="vertical" margin={{ top: 10, right: 60, left: 120, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" horizontal={true} vertical={false} />
-                  <XAxis type="number" tick={{ fill: '#a0a0a0', fontSize: 11 }} />
-                  <YAxis dataKey="name" type="category" tick={{ fill: '#a0a0a0', fontSize: 10 }} width={75} />
+                  <XAxis type="number" tick={{ fill: '#a0a0a0', fontSize: 12 }} />
+                  <YAxis dataKey="name" type="category" tick={{ fill: '#a0a0a0', fontSize: 11 }} width={110} />
                   <Tooltip content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
@@ -566,47 +565,56 @@ export default function AnalyticsPage() {
                         <div className="bg-claude-bg-secondary rounded-xl p-3 shadow-lg border border-claude-border text-sm">
                           <p className="font-bold text-claude-text mb-1">{data.name}</p>
                           <p className="text-pink-400">Compuestos: {data.count}</p>
-                          <p className="text-claude-orange">Tm promedio: {data.avg_tm.toFixed(1)} K</p>
-                          <p className="text-claude-text-muted">Rango: {data.min_tm.toFixed(0)} - {data.max_tm.toFixed(0)} K</p>
+                          <p className="text-claude-orange">Tm promedio: {data.avg_tm?.toFixed(1)} K</p>
+                          <p className="text-claude-text-muted">Rango: {data.min_tm?.toFixed(0)} - {data.max_tm?.toFixed(0)} K</p>
                         </div>
                       );
                     }
                     return null;
                   }} />
-                  <Bar dataKey="count" name="Cantidad" fill="#f472b6" barSize={16} />
-                  <Line type="monotone" dataKey="avg_tm" name="Tm Prom (K)" stroke="#E07A3A" strokeWidth={2} dot={{ fill: '#E07A3A', r: 3 }} />
+                  <Legend />
+                  <Bar dataKey="count" name="Cantidad" fill="#f472b6" barSize={20} />
+                  <Line type="monotone" dataKey="avg_tm" name="Tm Prom (K)" stroke="#E07A3A" strokeWidth={3} dot={{ fill: '#E07A3A', r: 4 }} />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
 
-            <div className="mt-3 p-3 rounded-xl bg-pink-500/10 border border-pink-500/20 text-xs">
-              <p className="text-claude-text-secondary">
-                <strong className="text-pink-400">Interpretación:</strong> Grupos polares (OH, NH2) aumentan Tm por puentes de hidrógeno.
+            <div className="mt-4 p-4 rounded-xl bg-pink-500/10 border border-pink-500/20">
+              <p className="text-claude-text-secondary text-sm">
+                <strong className="text-pink-400">Interpretacion:</strong> Los grupos funcionales polares (OH, NH2, COOH) tienden a aumentar el punto de fusion debido a los puentes de hidrogeno. Los grupos halogenados y aromaticos tambien influyen en la temperatura de fusion.
               </p>
             </div>
-          </motion.div>
+          </>
+        ) : (
+          <div className="h-64 flex items-center justify-center text-claude-text-muted">
+            <p>No hay datos de grupos funcionales disponibles</p>
+          </div>
         )}
+      </motion.div>
 
-        {/* Molecule Size Chart */}
-        {moleculeSizes.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-6 border border-claude-border">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400">
-                <Atom className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-claude-text">Tamaño Molecular</h3>
-                <p className="text-claude-text-secondary text-xs">Relación tamaño-Tm</p>
-              </div>
-            </div>
+      {/* ========================================== */}
+      {/* SECCION 6: Tamano Molecular */}
+      {/* ========================================== */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-6 border border-claude-border">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400">
+            <Atom className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-claude-text">Tamano Molecular vs Punto de Fusion</h3>
+            <p className="text-claude-text-secondary text-xs">Relacion entre el tamano de la molecula y su Tm</p>
+          </div>
+        </div>
 
-            <div className="h-80">
+        {moleculeSizes.length > 0 ? (
+          <>
+            <div className="h-96">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={moleculeSizes} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                <AreaChart data={moleculeSizes} margin={{ top: 10, right: 60, left: 20, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" />
-                  <XAxis dataKey="name" tick={{ fill: '#a0a0a0', fontSize: 10 }} />
-                  <YAxis yAxisId="left" tick={{ fill: '#a0a0a0', fontSize: 11 }} />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fill: '#a0a0a0', fontSize: 11 }} />
+                  <XAxis dataKey="name" tick={{ fill: '#a0a0a0', fontSize: 11 }} />
+                  <YAxis yAxisId="left" tick={{ fill: '#a0a0a0', fontSize: 12 }} label={{ value: 'Cantidad', angle: -90, position: 'insideLeft', fill: '#a0a0a0', fontSize: 12 }} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fill: '#a0a0a0', fontSize: 12 }} label={{ value: 'Tm (K)', angle: 90, position: 'insideRight', fill: '#a0a0a0', fontSize: 12 }} />
                   <Tooltip content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
@@ -614,30 +622,34 @@ export default function AnalyticsPage() {
                         <div className="bg-claude-bg-secondary rounded-xl p-3 shadow-lg border border-claude-border text-sm">
                           <p className="font-bold text-claude-text mb-1">{data.name}</p>
                           <p className="text-cyan-400">Compuestos: {data.count}</p>
-                          <p className="text-claude-orange">Tm promedio: {data.avg_tm.toFixed(1)} K</p>
+                          <p className="text-claude-orange">Tm promedio: {data.avg_tm?.toFixed(1)} K</p>
                         </div>
                       );
                     }
                     return null;
                   }} />
                   <Legend />
-                  <Area yAxisId="left" type="monotone" dataKey="count" name="Cantidad" fill="#22d3d1" fillOpacity={0.3} stroke="#22d3d1" />
-                  <Line yAxisId="right" type="monotone" dataKey="avg_tm" name="Tm Prom (K)" stroke="#E07A3A" strokeWidth={2} dot={{ fill: '#E07A3A', r: 3 }} />
+                  <Area yAxisId="left" type="monotone" dataKey="count" name="Cantidad" fill="#22d3d1" fillOpacity={0.3} stroke="#22d3d1" strokeWidth={2} />
+                  <Line yAxisId="right" type="monotone" dataKey="avg_tm" name="Tm Prom (K)" stroke="#E07A3A" strokeWidth={3} dot={{ fill: '#E07A3A', r: 4 }} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
 
-            <div className="mt-3 p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-xs">
-              <p className="text-claude-text-secondary">
-                <strong className="text-cyan-400">Interpretación:</strong> Moléculas más grandes tienen Tm más alto (fuerzas de van der Waals).
+            <div className="mt-4 p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+              <p className="text-claude-text-secondary text-sm">
+                <strong className="text-cyan-400">Interpretacion:</strong> Las moleculas mas grandes generalmente tienen puntos de fusion mas altos debido a mayores fuerzas de van der Waals. Esta relacion es util para estimar si una prediccion es razonable.
               </p>
             </div>
-          </motion.div>
+          </>
+        ) : (
+          <div className="h-64 flex items-center justify-center text-claude-text-muted">
+            <p>No hay datos de tamano molecular disponibles</p>
+          </div>
         )}
-      </div>
+      </motion.div>
 
       {/* ========================================== */}
-      {/* SECCION 5: Selector de Rango Interactivo */}
+      {/* SECCION 7: Selector de Rango Interactivo */}
       {/* ========================================== */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-6 border border-claude-border">
         <div className="flex items-center gap-3 mb-6">
@@ -698,7 +710,7 @@ export default function AnalyticsPage() {
       </motion.div>
 
       {/* ========================================== */}
-      {/* NOTA FINAL: Guía de Interpretación */}
+      {/* SECCION 8: Guia de Interpretacion */}
       {/* ========================================== */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-start gap-3 p-4 rounded-xl bg-claude-orange/10 border border-claude-orange/20">
         <AlertCircle className="w-5 h-5 text-claude-orange flex-shrink-0 mt-0.5" />
