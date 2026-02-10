@@ -113,4 +113,5 @@ public/workbox-*.js.map
 /test-results/
 /playwright-report/
 /playwright/.cache/
-CLAUDE.md
+*.md
+!README.md
