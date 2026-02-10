@@ -38,12 +38,10 @@ import {
   getStatistics,
   getDistribution,
   getByFunctionalGroup,
-  getByMoleculeSize,
   getAllData,
   Statistics,
   DistributionCategory,
   FunctionalGroupStats,
-  MoleculeSizeGroup,
   DataItem,
   kelvinToCelsius,
   SOURCE_COLORS,
@@ -76,7 +74,7 @@ export default function AnalyticsPage() {
   const [stats, setStats] = useState<Statistics | null>(null);
   const [distribution, setDistribution] = useState<DistributionCategory[]>([]);
   const [functionalGroups, setFunctionalGroups] = useState<FunctionalGroupStats[]>([]);
-  const [moleculeSizes, setMoleculeSizes] = useState<MoleculeSizeGroup[]>([]);
+  // moleculeSizes se calcula en frontend con useMemo
   const [allData, setAllData] = useState<DataItem[]>([]);
 
   // Filters
@@ -90,18 +88,16 @@ export default function AnalyticsPage() {
       await checkHealth();
       setIsConnected(true);
 
-      const [statsData, distData, fgData, msData, dataAll] = await Promise.all([
+      const [statsData, distData, fgData, dataAll] = await Promise.all([
         getStatistics(),
         getDistribution(),
         getByFunctionalGroup(),
-        getByMoleculeSize(),
         getAllData(),
       ]);
 
       setStats(statsData);
       setDistribution(distData.categories || []);
       setFunctionalGroups(fgData.groups || []);
-      setMoleculeSizes(msData.size_groups || []);
       setAllData(dataAll || []);
 
     } catch (err) {
@@ -200,6 +196,35 @@ export default function AnalyticsPage() {
       smilesLength: d.smiles?.length || 0,
     }));
   }, [allData, sourceFilter]);
+
+  // Molecule sizes calculated from allData (frontend)
+  const moleculeSizes = useMemo(() => {
+    if (allData.length === 0) return [];
+    const sizeGroups = [
+      { name: 'Muy pequeno (1-10)', min: 1, max: 10 },
+      { name: 'Pequeno (11-20)', min: 11, max: 20 },
+      { name: 'Mediano (21-35)', min: 21, max: 35 },
+      { name: 'Grande (36-50)', min: 36, max: 50 },
+      { name: 'Muy grande (51-75)', min: 51, max: 75 },
+      { name: 'Enorme (>75)', min: 76, max: Infinity },
+    ];
+    return sizeGroups.map(g => {
+      const items = allData.filter(d => {
+        const len = d.smiles?.length || 0;
+        return len >= g.min && len <= g.max;
+      });
+      const tms = items.map(d => d.Tm_pred).filter(t => t != null);
+      return {
+        name: g.name,
+        smiles_length_min: g.min,
+        smiles_length_max: g.max,
+        count: items.length,
+        avg_tm: tms.length > 0 ? tms.reduce((a, b) => a + b, 0) / tms.length : 0,
+        min_tm: tms.length > 0 ? Math.min(...tms) : 0,
+        max_tm: tms.length > 0 ? Math.max(...tms) : 0,
+      };
+    });
+  }, [allData]);
 
   // Functional groups data for visualization
   const topFunctionalGroups = useMemo(() => {
@@ -489,14 +514,14 @@ export default function AnalyticsPage() {
 
         <div className="h-96">
           <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart margin={{ top: 20, right: 30, bottom: 40, left: 20 }}>
+            <ScatterChart margin={{ top: 20, right: 30, bottom: 60, left: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" />
               <XAxis
                 dataKey="smilesLength"
                 name="SMILES Length"
                 type="number"
                 tick={{ fill: '#a0a0a0', fontSize: 12 }}
-                label={{ value: 'Longitud SMILES', position: 'bottom', fill: '#a0a0a0', fontSize: 12, dy: 15 }}
+                label={{ value: 'Longitud SMILES', position: 'bottom', fill: '#a0a0a0', fontSize: 12, dy: -5 }}
               />
               <YAxis
                 dataKey="Tm_pred"
@@ -505,7 +530,7 @@ export default function AnalyticsPage() {
                 label={{ value: 'Tm (K)', angle: -90, position: 'insideLeft', fill: '#a0a0a0', fontSize: 12 }}
               />
               <Tooltip content={<ScatterTooltip />} />
-              <Legend formatter={(value) => value === 'train' ? 'Train' : value === 'test' ? 'Test' : 'Usuario'} />
+              <Legend verticalAlign="bottom" wrapperStyle={{ paddingTop: 20 }} formatter={(value) => value === 'train' ? 'Train' : value === 'test' ? 'Test' : 'Usuario'} />
               {(sourceFilter === 'all' || sourceFilter === 'train') && (
                 <Scatter name="train" data={scatterData.filter(d => d.source === 'train')} fill={SOURCE_COLORS.train} opacity={0.7} />
               )}
@@ -594,11 +619,11 @@ export default function AnalyticsPage() {
           <>
             <div className="h-96">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={moleculeSizes} margin={{ top: 10, right: 60, left: 20, bottom: 10 }}>
+                <ComposedChart data={moleculeSizes} margin={{ top: 10, right: 60, left: 20, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" />
                   <XAxis dataKey="name" tick={{ fill: '#a0a0a0', fontSize: 11 }} />
-                  <YAxis yAxisId="left" tick={{ fill: '#a0a0a0', fontSize: 12 }} label={{ value: 'Cantidad', angle: -90, position: 'insideLeft', fill: '#a0a0a0', fontSize: 12 }} />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fill: '#a0a0a0', fontSize: 12 }} label={{ value: 'Tm (K)', angle: 90, position: 'insideRight', fill: '#a0a0a0', fontSize: 12 }} />
+                  <YAxis yAxisId="left" tick={{ fill: '#22d3d1', fontSize: 12 }} label={{ value: 'Cantidad de compuestos', angle: -90, position: 'insideLeft', fill: '#22d3d1', fontSize: 12, dx: -10 }} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fill: '#E07A3A', fontSize: 12 }} label={{ value: 'Tm promedio (K)', angle: 90, position: 'insideRight', fill: '#E07A3A', fontSize: 12, dx: 10 }} />
                   <Tooltip content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
@@ -615,7 +640,7 @@ export default function AnalyticsPage() {
                   <Legend />
                   <Area yAxisId="left" type="monotone" dataKey="count" name="Cantidad" fill="#22d3d1" fillOpacity={0.3} stroke="#22d3d1" strokeWidth={2} />
                   <Line yAxisId="right" type="monotone" dataKey="avg_tm" name="Tm Prom (K)" stroke="#E07A3A" strokeWidth={3} dot={{ fill: '#E07A3A', r: 4 }} />
-                </AreaChart>
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
 
